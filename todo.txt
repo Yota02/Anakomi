@@ -1,0 +1,10 @@
+1 - Faire un system de rest de mdp 
+2 - Rajouter des filtre et trie (ordre, année, etc...)
+3 - faire le top 10 
+4 - faire le top waifu
+5 - faire sur les films
+6 - faire sur les séries
+7 - faire sur les mangas
+8 - faire sur les livres
+9 - faire sur les jeux vidéos
+10 - faire un système de recommandation

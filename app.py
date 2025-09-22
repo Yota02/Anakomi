@@ -3,6 +3,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
 import os
 import logging
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
+import smtplib
+from email.message import EmailMessage
 
 from config_db import execute_query, fetch_all, fetch_one, get_connection, resolve_user_table
 
@@ -129,6 +132,62 @@ def ensure_tables():
     except Exception as e:
         # Ne pas planter l'application : on loggue pour l'admin et on continue.
         print(f"⚠️  Échec création/verification des tables : {e}")
+
+# Serializer pour tokens de reset (utilise SECRET_KEY de app.config)
+def _get_serializer():
+    return URLSafeTimedSerializer(app.config['SECRET_KEY'])
+
+def generate_reset_token(user_id):
+    s = _get_serializer()
+    return s.dumps({'user_id': user_id})
+
+def verify_reset_token(token, max_age=3600):
+    s = _get_serializer()
+    try:
+        data = s.loads(token, max_age=max_age)
+        return data.get('user_id')
+    except SignatureExpired:
+        return None
+    except BadSignature:
+        return None
+
+def send_reset_email(to_email, token, username):
+    """
+    Envoie l'email de reset si la configuration SMTP est présente.
+    Variables d'environnement supportées:
+      SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, MAIL_FROM
+    Si non configuré, on logge et on renvoie le lien (utile pour dev local).
+    """
+    host = os.getenv('SMTP_HOST')
+    port = int(os.getenv('SMTP_PORT', '587')) if os.getenv('SMTP_PORT') else None
+    user = os.getenv('SMTP_USER')
+    password = os.getenv('SMTP_PASSWORD')
+    mail_from = os.getenv('MAIL_FROM', 'no-reply@anakomi.local')
+
+    reset_url = url_for('reset_password', token=token, _external=True)
+    subject = "Réinitialisation de votre mot de passe - Anakomi"
+    body = f"Bonjour {username},\n\nPour réinitialiser votre mot de passe, cliquez sur le lien suivant (valide 1h) :\n\n{reset_url}\n\nSi vous n'avez pas demandé ce reset, ignorez ce message.\n\n— L'équipe Anakomi"
+
+    if host and user and password and port:
+        try:
+            msg = EmailMessage()
+            msg['Subject'] = subject
+            msg['From'] = mail_from
+            msg['To'] = to_email
+            msg.set_content(body)
+
+            with smtplib.SMTP(host, port, timeout=10) as smtp:
+                smtp.starttls()
+                smtp.login(user, password)
+                smtp.send_message(msg)
+            logger.info("Email de réinitialisation envoyé à %s", to_email)
+            return True
+        except Exception as e:
+            logger.error("Échec envoi email reset: %s", e)
+            # fallback to console
+    # Si pas de SMTP ou erreur -> log + flash le lien (pratique pour dev)
+    logger.info("Lien de réinitialisation (dev/console) pour %s : %s", to_email, reset_url)
+    return False
 
 # Routes
 @app.route('/')
@@ -367,6 +426,59 @@ def edit_anime(id):
         return redirect(url_for('anime_detail', id=id))
     
     return render_template('edit_anime.html', anime=anime)
+
+# Route: demande de réinitialisation
+@app.route('/reset_password_request', methods=['GET', 'POST'])
+def reset_password_request():
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip()
+        if not email:
+            flash("Veuillez fournir votre adresse email.")
+            return redirect(url_for('reset_password_request'))
+
+        # Détecter la table utilisateur et chercher par email
+        info = get_user_table_info()
+        tbl = info['table']
+        user = fetch_one(f"SELECT id, username, email FROM {tbl} WHERE email = %s", (email,))
+        if user:
+            token = generate_reset_token(user['id'])
+            sent = send_reset_email(user['email'], token, user.get('username') or '')
+            flash("Si un compte existe pour cet email, un lien de réinitialisation a été envoyé.")
+            # Ne pas révéler l'existence du compte : message générique
+            if not sent:
+                # pour dev on affiche aussi le lien (console/log) ; inutile d'ajouter ici
+                pass
+        else:
+            # Même message pour éviter de divulguer l'existence de l'email
+            flash("Si un compte existe pour cet email, un lien de réinitialisation a été envoyé.")
+        return redirect(url_for('login'))
+    return render_template('password_reset_request.html')
+
+# Route: formulaire de nouveau mot de passe
+@app.route('/reset_password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    user_id = verify_reset_token(token)
+    if not user_id:
+        flash("Le lien de réinitialisation est invalide ou expiré.")
+        return redirect(url_for('reset_password_request'))
+
+    if request.method == 'POST':
+        password = request.form.get('password', '').strip()
+        password2 = request.form.get('password2', '').strip()
+        if not password or password != password2:
+            flash("Les mots de passe doivent être identiques et non vides.")
+            return redirect(url_for('reset_password', token=token))
+
+        password_hash = generate_password_hash(password)
+        info = get_user_table_info()
+        tbl = info['table']
+        pwdcol = info['password_col']
+        # Mettre à jour la colonne détectée (compatible password / password_hash)
+        execute_query(f"UPDATE {tbl} SET {pwdcol} = %s WHERE id = %s", (password_hash, user_id))
+        flash("Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter.")
+        return redirect(url_for('login'))
+
+    return render_template('password_reset.html', token=token)
 
 if __name__ == '__main__':
     # Hôte/port et mode debug contrôlés par des variables d'environnement
