@@ -1,0 +1,372 @@
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+from werkzeug.security import generate_password_hash, check_password_hash
+from datetime import datetime
+import os
+
+from config_db import execute_query, fetch_all, fetch_one, get_connection, resolve_user_table
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+
+# Résolution paresseuse de la table/colonne utilisateur (cache)
+_user_table_cache = None
+def get_user_table_info():
+    global _user_table_cache
+    if _user_table_cache is None:
+        try:
+            _user_table_cache = resolve_user_table()
+        except Exception:
+            # En cas d'erreur de connexion pendant la détection, fallback sûr
+            _user_table_cache = {'table': 'user', 'password_col': 'password_hash'}
+    return _user_table_cache
+
+# Classe User simple pour gérer l'authentification
+class User:
+    def __init__(self, id, username, email):
+        self.id = id
+        self.username = username
+        self.email = email
+    
+    @staticmethod
+    def get(user_id):
+        """Récupérer un utilisateur par son ID"""
+        info = get_user_table_info()
+        tbl = info['table']
+        user_data = fetch_one(f"SELECT id, username, email FROM {tbl} WHERE id = %s", (user_id,))
+        if user_data:
+            return User(user_data['id'], user_data['username'], user_data['email'])
+        return None
+    
+    @staticmethod
+    def get_by_username(username):
+        """Récupérer un utilisateur par son nom d'utilisateur.
+           Selectionne aussi la colonne de mot de passe sous l'alias password_hash pour compatibilité."""
+        info = get_user_table_info()
+        tbl = info['table']
+        pwdcol = info['password_col']
+        return fetch_one(f"SELECT *, {pwdcol} AS password_hash FROM {tbl} WHERE username = %s", (username,))
+
+# Fonctions d'aide pour l'authentification
+def login_required(f):
+    """Décorateur pour vérifier l'authentification"""
+    from functools import wraps
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            flash('Veuillez vous connecter pour accéder à cette page.')
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+def get_current_user():
+    """Récupérer l'utilisateur actuel"""
+    if 'user_id' in session:
+        return User.get(session['user_id'])
+    return None
+
+# Context processor pour rendre current_user disponible dans les templates
+@app.context_processor
+def inject_user():
+    return dict(current_user=get_current_user())
+
+# --- Ajout : création sûre des tables nécessaires si elles manquent ---
+def ensure_tables():
+    """Crée les tables 'anime' et 'review' si elles n'existent pas (opération sûre)."""
+    anime_sql = """
+    CREATE TABLE IF NOT EXISTS anime (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        genre VARCHAR(100),
+        year INT,
+        cover_url VARCHAR(500),
+        added_by INT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
+    review_sql = """
+    CREATE TABLE IF NOT EXISTS review (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        rating TINYINT NOT NULL,
+        comment TEXT,
+        user_id INT,
+        anime_id INT,
+        date_created DATETIME DEFAULT CURRENT_TIMESTAMP,
+        -- On évite la contrainte foreign key sur user_id pour rester compatible si la table utilisateur diffère
+        FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
+    user_sql = """
+    CREATE TABLE IF NOT EXISTS user (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            username VARCHAR(80) UNIQUE NOT NULL,
+            email VARCHAR(120) UNIQUE NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+     """
+    try:
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute(anime_sql)
+                cursor.execute(review_sql)
+                cursor.execute(user_sql)
+            conn.commit()
+    except Exception as e:
+        # Ne pas planter l'application : on loggue pour l'admin et on continue.
+        print(f"⚠️  Échec création/verification des tables : {e}")
+
+# Routes
+@app.route('/')
+def index():
+    q = (request.args.get('q') or '').strip()
+    try:
+        if q:
+            # recherche insensible à la casse sur titre et description (paramétrée)
+            pattern = f"%{q}%"
+            animes = fetch_all(
+                """
+                SELECT a.*, 
+                       COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                       COUNT(r.id) AS review_count
+                FROM anime a
+                LEFT JOIN review r ON a.id = r.anime_id
+                WHERE LOWER(a.title) LIKE %s OR LOWER(a.description) LIKE %s
+                GROUP BY a.id
+                ORDER BY a.created_at DESC
+                """,
+                (pattern.lower(), pattern.lower())
+            )
+        else:
+            animes = fetch_all(
+                """
+                SELECT a.*, 
+                       COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                       COUNT(r.id) AS review_count
+                FROM anime a
+                LEFT JOIN review r ON a.id = r.anime_id
+                GROUP BY a.id
+                ORDER BY a.created_at DESC
+                """
+            )
+    except Exception as e:
+        # Si la table anime manque, tenter une création automatique puis retenter
+        msg = str(e).lower()
+        if ('doesn' in msg and 'exist' in msg) or '1146' in msg or ('anime' in msg and 'doesn' in msg):
+            flash("La table 'anime' est manquante. Tentative de création automatique...")
+            ensure_tables()
+            try:
+                if q:
+                    pattern = f"%{q}%"
+                    animes = fetch_all(
+                        """
+                        SELECT a.*, 
+                               COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                               COUNT(r.id) AS review_count
+                        FROM anime a
+                        LEFT JOIN review r ON a.id = r.anime_id
+                        WHERE LOWER(a.title) LIKE %s OR LOWER(a.description) LIKE %s
+                        GROUP BY a.id
+                        ORDER BY a.created_at DESC
+                        """,
+                        (pattern.lower(), pattern.lower())
+                    )
+                else:
+                    animes = fetch_all(
+                        """
+                        SELECT a.*, 
+                               COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                               COUNT(r.id) AS review_count
+                        FROM anime a
+                        LEFT JOIN review r ON a.id = r.anime_id
+                        GROUP BY a.id
+                        ORDER BY a.created_at DESC
+                        """
+                    )
+            except Exception as e2:
+                flash("Impossible de récupérer les animes après tentative de création : vérifier la base de données.")
+                print(f"Erreur après tentative de création des tables: {e2}")
+                animes = []
+        else:
+            # Pour toute autre erreur, on loggue et retourne une liste vide pour éviter un crash visible.
+            print(f"Erreur lors de la lecture des animes: {e}")
+            flash("Erreur lors de la lecture des animes. Voir la console pour plus de détails.")
+            animes = []
+    return render_template('index.html', animes=animes)
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        
+        info = get_user_table_info()
+        tbl = info['table']
+        pwdcol = info['password_col']
+        
+        # Vérifier si l'utilisateur existe déjà
+        if fetch_one(f"SELECT id FROM {tbl} WHERE username = %s", (username,)):
+            flash('Nom d\'utilisateur déjà existant')
+            return redirect(url_for('register'))
+        
+        if fetch_one(f"SELECT id FROM {tbl} WHERE email = %s", (email,)):
+            flash('Email déjà utilisé')
+            return redirect(url_for('register'))
+        
+        # Créer l'utilisateur : insérer dans la colonne détectée pour le mot de passe
+        password_hash = generate_password_hash(password)
+        execute_query(
+            f"INSERT INTO {tbl} (username, email, {pwdcol}) VALUES (%s, %s, %s)",
+            (username, email, password_hash)
+        )
+        
+        flash('Inscription réussie')
+        return redirect(url_for('login'))
+    
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        info = get_user_table_info()
+        tbl = info['table']
+        pwdcol = info['password_col']
+
+        # Récupérer l'utilisateur et normaliser le champ mot de passe sous 'password_hash'
+        user = fetch_one(f"SELECT *, {pwdcol} AS password_hash FROM {tbl} WHERE username = %s", (username,))
+        
+        if user and check_password_hash(user.get('password_hash', ''), password):
+            session['user_id'] = user['id']
+            flash('Connexion réussie')
+            return redirect(url_for('index'))
+        else:
+            flash('Identifiants incorrects')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    session.pop('user_id', None)
+    flash('Déconnexion réussie')
+    return redirect(url_for('index'))
+
+@app.route('/add_anime', methods=['GET', 'POST'])
+@login_required
+def add_anime():
+    if request.method == 'POST':
+        title = request.form['title']
+        description = request.form['description']
+        genre = request.form['genre']
+        year = request.form['year']
+        cover_url = request.form.get('cover_url', '')
+        
+        execute_query(
+            "INSERT INTO anime (title, description, genre, year, cover_url, added_by) VALUES (%s, %s, %s, %s, %s, %s)",
+            (title, description, genre, int(year), cover_url, session['user_id'])
+        )
+        
+        flash('Anime ajouté avec succès')
+        return redirect(url_for('index'))
+    
+    return render_template('add_anime.html')
+
+@app.route('/anime/<int:id>')
+def anime_detail(id):
+    anime = fetch_one("SELECT * FROM anime WHERE id = %s", (id,))
+    if not anime:
+        flash('Anime non trouvé')
+        return redirect(url_for('index'))
+    
+    info = get_user_table_info()
+    user_tbl = info['table']
+    # Récupérer les avis avec les noms d'utilisateur (utilise la table utilisateur détectée)
+    reviews = fetch_all(f"""
+        SELECT r.*, u.username 
+        FROM review r 
+        JOIN {user_tbl} u ON r.user_id = u.id 
+        WHERE r.anime_id = %s 
+        ORDER BY r.date_created DESC
+    """, (id,))
+    
+    # Calculer la moyenne des notes
+    avg_rating = 0
+    if reviews:
+        avg_rating = sum(review['rating'] for review in reviews) / len(reviews)
+    
+    return render_template('anime_detail.html', anime=anime, reviews=reviews, avg_rating=round(avg_rating, 1))
+
+@app.route('/add_review/<int:anime_id>', methods=['POST'])
+@login_required
+def add_review(anime_id):
+    rating = int(request.form['rating'])
+    comment = request.form['comment']
+    
+    # Vérifier si l'utilisateur a déjà noté cet anime
+    existing_review = fetch_one(
+        "SELECT id FROM review WHERE user_id = %s AND anime_id = %s",
+        (session['user_id'], anime_id)
+    )
+    
+    if existing_review:
+        # Mettre à jour l'avis existant
+        execute_query(
+            "UPDATE review SET rating = %s, comment = %s, date_created = NOW() WHERE user_id = %s AND anime_id = %s",
+            (rating, comment, session['user_id'], anime_id)
+        )
+        flash('Avis modifié avec succès')
+    else:
+        # Créer un nouvel avis
+        execute_query(
+            "INSERT INTO review (rating, comment, user_id, anime_id) VALUES (%s, %s, %s, %s)",
+            (rating, comment, session['user_id'], anime_id)
+        )
+        flash('Avis ajouté avec succès')
+    
+    return redirect(url_for('anime_detail', id=anime_id))
+
+@app.route('/edit_anime/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_anime(id):
+    anime = fetch_one("SELECT * FROM anime WHERE id = %s", (id,))
+    if not anime:
+        flash('Anime non trouvé')
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        title = request.form['title']
+        description = request.form['description']
+        genre = request.form['genre']
+        year = request.form['year']
+        cover_url = request.form.get('cover_url', '')
+        
+        execute_query(
+            "UPDATE anime SET title = %s, description = %s, genre = %s, year = %s, cover_url = %s WHERE id = %s",
+            (title, description, genre, int(year), cover_url, id)
+        )
+        
+        flash('Anime modifié avec succès')
+        return redirect(url_for('anime_detail', id=id))
+    
+    return render_template('edit_anime.html', anime=anime)
+
+if __name__ == '__main__':
+    try:
+        # Tester la connexion à la base de données via le context manager de config_db
+        with get_connection() as conn:
+            with conn.cursor() as cursor:
+                cursor.execute("SELECT 1")
+        
+    except Exception as e:
+        print(f"❌ Erreur de connexion à MySQL: {e}")
+        print("Vérifiez que MySQL est démarré et que les paramètres de connexion sont corrects.")
+        exit(1)
+    
+    # Assurer la présence des tables requises avant de lancer l'app
+    ensure_tables()
+    
+    app.run(debug=True)

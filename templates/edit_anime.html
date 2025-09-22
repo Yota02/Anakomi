@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card p-4">
+            <h2>Modifier l'Anime</h2>
+            <form method="POST">
+                <div class="mb-3">
+                    <label for="title" class="form-label">Titre</label>
+                    <input type="text" class="form-control" id="title" name="title" value="{{ anime.title }}" required>
+                </div>
+                <div class="mb-3">
+                    <label for="description" class="form-label">Description</label>
+                    <textarea class="form-control" id="description" name="description" rows="4">{{ anime.description }}</textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="genre" class="form-label">Genre</label>
+                        <input type="text" class="form-control" id="genre" name="genre" value="{{ anime.genre }}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="year" class="form-label">Année</label>
+                        <input type="number" class="form-control" id="year" name="year" min="1900" max="2030" value="{{ anime.year }}">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="cover_url" class="form-label">URL de la couverture</label>
+                    <input type="url" class="form-control" id="cover_url" name="cover_url" value="{{ anime.cover_url }}" placeholder="https://exemple.com/image.jpg">
+                    <div class="form-text">Optionnel : URL d'une image pour la couverture de l'anime</div>
+                    {% if anime.cover_url %}
+                    <div class="mt-2">
+                        <small class="text-muted">Aperçu actuel :</small><br>
+                        <img src="{{ anime.cover_url }}" alt="{{ anime.title }}" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-brand">Sauvegarder</button>
+                    <a href="{{ url_for('anime_detail', id=anime.id) }}" class="btn btn-outline-secondary">Annuler</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
