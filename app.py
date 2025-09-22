@@ -193,12 +193,23 @@ def send_reset_email(to_email, token, username):
 @app.route('/')
 def index():
     q = (request.args.get('q') or '').strip()
+    sort = request.args.get('sort', 'recent')  # nouveau paramètre de tri
+
+    # Liste blanche des tris autorisés pour éviter l'injection SQL
+    _allowed_sorts = {
+        'recent': 'a.created_at DESC, a.id DESC',
+        'title_asc': 'LOWER(a.title) ASC, a.id DESC',
+        'title_desc': 'LOWER(a.title) DESC, a.id DESC',
+        'rating_desc': 'AVG(r.rating) DESC, a.id DESC'
+    }
+    order_clause = _allowed_sorts.get(sort, _allowed_sorts['recent'])
+
     try:
         if q:
             # recherche insensible à la casse sur titre et description (paramétrée)
             pattern = f"%{q}%"
             animes = fetch_all(
-                """
+                f"""
                 SELECT a.*, 
                        COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
                        COUNT(r.id) AS review_count
@@ -206,20 +217,20 @@ def index():
                 LEFT JOIN review r ON a.id = r.anime_id
                 WHERE LOWER(a.title) LIKE %s OR LOWER(a.description) LIKE %s
                 GROUP BY a.id
-                ORDER BY a.created_at DESC
+                ORDER BY {order_clause}
                 """,
                 (pattern.lower(), pattern.lower())
             )
         else:
             animes = fetch_all(
-                """
+                f"""
                 SELECT a.*, 
                        COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
                        COUNT(r.id) AS review_count
                 FROM anime a
                 LEFT JOIN review r ON a.id = r.anime_id
                 GROUP BY a.id
-                ORDER BY a.created_at DESC
+                ORDER BY {order_clause}
                 """
             )
     except Exception as e:
@@ -232,7 +243,7 @@ def index():
                 if q:
                     pattern = f"%{q}%"
                     animes = fetch_all(
-                        """
+                        f"""
                         SELECT a.*, 
                                COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
                                COUNT(r.id) AS review_count
@@ -240,20 +251,20 @@ def index():
                         LEFT JOIN review r ON a.id = r.anime_id
                         WHERE LOWER(a.title) LIKE %s OR LOWER(a.description) LIKE %s
                         GROUP BY a.id
-                        ORDER BY a.created_at DESC
+                        ORDER BY {order_clause}
                         """,
                         (pattern.lower(), pattern.lower())
                     )
                 else:
                     animes = fetch_all(
-                        """
+                        f"""
                         SELECT a.*, 
                                COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
                                COUNT(r.id) AS review_count
                         FROM anime a
                         LEFT JOIN review r ON a.id = r.anime_id
                         GROUP BY a.id
-                        ORDER BY a.created_at DESC
+                        ORDER BY {order_clause}
                         """
                     )
             except Exception as e2:
@@ -265,7 +276,7 @@ def index():
             print(f"Erreur lors de la lecture des animes: {e}")
             flash("Erreur lors de la lecture des animes. Voir la console pour plus de détails.")
             animes = []
-    return render_template('index.html', animes=animes)
+    return render_template('index.html', animes=animes, sort=sort)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():

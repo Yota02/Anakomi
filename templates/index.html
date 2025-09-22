@@ -6,9 +6,36 @@
     <div class="container">
         <div class="d-flex justify-content-between align-items-center flex-column flex-md-row gap-3">
             <form method="get" action="{{ url_for('index') }}" class="flex-grow-1" style="max-width:720px;">
-                <div class="input-group">
-                    <input type="search" name="q" class="form-control" placeholder="Rechercher un anime..." value="{{ request.args.get('q', '') }}">
-                    <button class="btn btn-outline-secondary" type="submit"><i class="fas fa-search"></i> Rechercher</button>
+                <div class="d-flex gap-2">
+                    <div class="input-group flex-grow-1">
+                        <input type="search" name="q" class="form-control" placeholder="Rechercher un anime..." value="{{ request.args.get('q', '') }}">
+                        <button class="btn btn-outline-secondary" type="submit"><i class="fas fa-search"></i> Rechercher</button>
+                    </div>
+
+                    <!-- Nouveau: select de tri (existant) -->
+                    <select name="sort" class="form-select" style="max-width:220px;">
+                        <option value="recent" {% if sort == 'recent' %}selected{% endif %}>Plus récent</option>
+                        <option value="title_asc" {% if sort == 'title_asc' %}selected{% endif %}>Titre A → Z</option>
+                        <option value="title_desc" {% if sort == 'title_desc' %}selected{% endif %}>Titre Z → A</option>
+                        <option value="rating_desc" {% if sort == 'rating_desc' %}selected{% endif %}>Trier par note</option>
+                    </select>
+
+                    <!-- Ajout : boutons de tri rapide -->
+                    {% set q = request.args.get('q','') %}
+                    <div class="btn-group" role="group" aria-label="Tri rapide" style="white-space:nowrap;">
+                        <a href="{{ url_for('index', q=q, sort='recent') }}"
+                           class="{% if sort == 'recent' %}btn btn-primary{% else %}btn btn-outline-secondary{% endif %} btn-sm"
+                           title="Trier par plus récent">Récent</a>
+                        <a href="{{ url_for('index', q=q, sort='title_asc') }}"
+                           class="{% if sort == 'title_asc' %}btn btn-primary{% else %}btn btn-outline-secondary{% endif %} btn-sm"
+                           title="Trier par titre A→Z">A → Z</a>
+                        <a href="{{ url_for('index', q=q, sort='title_desc') }}"
+                           class="{% if sort == 'title_desc' %}btn btn-primary{% else %}btn btn-outline-secondary{% endif %} btn-sm"
+                           title="Trier par titre Z→A">Z → A</a>
+                        <a href="{{ url_for('index', q=q, sort='rating_desc') }}"
+                           class="{% if sort == 'rating_desc' %}btn btn-primary{% else %}btn btn-outline-secondary{% endif %} btn-sm"
+                           title="Trier par meilleure note">Top</a>
+                    </div>
                 </div>
             </form>
             <div class="ms-md-3">
