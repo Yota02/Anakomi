@@ -2,6 +2,5 @@ Flask==2.3.3
 PyMySQL==1.1.0
 cryptography==41.0.7
 Werkzeug==2.3.7
-cryptography==41.0.7
-Werkzeug==2.3.7
-dotenv
+python-dotenv==1.0.0
+gunicorn==20.1.0

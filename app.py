@@ -1,12 +1,26 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
+import logging
 
 from config_db import execute_query, fetch_all, fetch_one, get_connection, resolve_user_table
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
+# Charger la clé secrète depuis l'environnement (config_db.py a déjà chargé .env)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') or 'change_me_in_production'
+
+# Sécurité des cookies pour la prod (modifiable via variables d'environnement)
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax')
+# Par défaut on active Secure en production (peut être désactivé localement)
+app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', '1') == '1'
+# Durée de session par défaut
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=int(os.getenv('SESSION_LIFETIME_DAYS', '7')))
+
+# Logging minimal pour prod
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Résolution paresseuse de la table/colonne utilisateur (cache)
 _user_table_cache = None
@@ -64,10 +78,10 @@ def get_current_user():
         return User.get(session['user_id'])
     return None
 
-# Context processor pour rendre current_user disponible dans les templates
+# Context processor pour fournir l'utilisateur courant (déjà présent) et l'année actuelle
 @app.context_processor
-def inject_user():
-    return dict(current_user=get_current_user())
+def inject_globals():
+    return dict(current_user=get_current_user(), current_year=datetime.utcnow().year)
 
 # --- Ajout : création sûre des tables nécessaires si elles manquent ---
 def ensure_tables():
@@ -355,18 +369,24 @@ def edit_anime(id):
     return render_template('edit_anime.html', anime=anime)
 
 if __name__ == '__main__':
+    # Hôte/port et mode debug contrôlés par des variables d'environnement
+    host = os.getenv('HOST', '0.0.0.0')
+    port = int(os.getenv('PORT', '5000'))
+    debug = os.getenv('FLASK_DEBUG', '0') == '1'
+
     try:
-        # Tester la connexion à la base de données via le context manager de config_db
+        # Tester la connexion à la base de données avant démarrage
         with get_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute("SELECT 1")
-        
     except Exception as e:
-        print(f"❌ Erreur de connexion à MySQL: {e}")
-        print("Vérifiez que MySQL est démarré et que les paramètres de connexion sont corrects.")
+        logger.error("❌ Erreur de connexion à MySQL: %s", e)
+        logger.error("Vérifiez que MySQL est démarré et que les paramètres de connexion sont corrects.")
         exit(1)
-    
-    # Assurer la présence des tables requises avant de lancer l'app
+
+    # Assurer la présence des tables requises
     ensure_tables()
-    
-    app.run(debug=True)
+
+    # Démarrer l'app (pour dev local). En production, utilisez gunicorn: e.g.
+    # gunicorn -w 4 -b 0.0.0.0:8000 "app:app"
+    app.run(host=host, port=port, debug=debug)
