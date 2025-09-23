@@ -40,7 +40,7 @@
                                 {% for top_item in top5 %}
                                     {% if top_item.rank_position == i and top_item.id == waifu.id %}selected{% endif %}
                                 {% endfor %}>
-                            {{ waifu.name }} ({{ waifu.anime_title }})
+                            {{ waifu.name }} ({{ waifu.source_title }})
                         </option>
                         {% endfor %}
                     </select>

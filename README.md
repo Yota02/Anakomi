@@ -78,3 +78,44 @@ Modifiez ces paramètres dans `app.py` selon votre configuration MySQL.
 - date_created (DATETIME)
 - user_id (INT, FOREIGN KEY → user.id)
 - anime_id (INT, FOREIGN KEY → anime.id)
+
+### Table `waifu`
+- id (INT, PRIMARY KEY)
+- name (VARCHAR(255))
+- anime_id (INT, FOREIGN KEY → anime.id, NULL si videogame)
+- videogame_id (INT, FOREIGN KEY → videogame.id, NULL si anime)
+- description (TEXT)
+- image_url (VARCHAR(500))
+- added_by (INT, FOREIGN KEY → user.id)
+
+### Table `videogame`
+- id (INT, PRIMARY KEY)
+- title (VARCHAR(255))
+- description (TEXT)
+- genre (VARCHAR(100))
+- year (INT)
+- platform (VARCHAR(100))
+- cover_url (VARCHAR(500))
+- added_by (INT, FOREIGN KEY → user.id)
+
+### Table `videogame_review`
+- id (INT, PRIMARY KEY)
+- rating (INT, 1-5)
+- comment (TEXT)
+- user_id (INT, FOREIGN KEY → user.id)
+- videogame_id (INT, FOREIGN KEY → videogame.id)
+- created_at (DATETIME)
+
+### Table `user_waifu_top5`
+- id (INT, PRIMARY KEY)
+- user_id (INT, FOREIGN KEY → user.id)
+- waifu_id (INT, FOREIGN KEY → waifu.id)
+- rank_position (INT, 1-5)
+- is_public (BOOLEAN)
+
+### Table `user_videogame_top10`
+- id (INT, PRIMARY KEY)
+- user_id (INT, FOREIGN KEY → user.id)
+- videogame_id (INT, FOREIGN KEY → videogame.id)
+- rank_position (INT, 1-10)
+- is_public (BOOLEAN)

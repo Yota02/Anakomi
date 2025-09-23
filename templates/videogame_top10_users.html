@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-trophy text-warning"></i> Top 10 Jeux Vidéo des utilisateurs</h1>
+    {% if current_user %}
+        <a href="{{ url_for('my_videogame_top10') }}" class="btn btn-brand">Mon top 10 jeux vidéo</a>
+    {% endif %}
+</div>
+
+{% if users %}
+    <div class="row">
+        {% for user in users %}
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-user"></i> {{ user.username }}
+                    </h5>
+                    <p class="card-text text-muted">
+                        <i class="fas fa-gamepad text-primary"></i>
+                        {{ user.videogame_count }} jeu{{ 'x' if user.videogame_count > 1 else '' }} dans le top 10
+                    </p>
+                    <a href="{{ url_for('view_user_videogame_top10', user_id=user.id) }}" class="btn btn-primary">
+                        <i class="fas fa-eye"></i> Voir le top 10
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-5">
+        <h3>Aucun top 10 jeux vidéo public pour le moment</h3>
+        {% if current_user %}
+            <p class="text-muted">Soyez le premier à créer votre top 10 jeux vidéo !</p>
+            <a href="{{ url_for('my_videogame_top10') }}" class="btn btn-brand mt-3">
+                <i class="fas fa-gamepad"></i> Créer mon top 10 jeux vidéo
+            </a>
+        {% endif %}
+    </div>
+{% endif %}
+
+<div class="mt-4 text-center">
+    <a href="{{ url_for('videogames_list') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-gamepad"></i> Voir tous les jeux vidéo
+    </a>
+</div>
+{% endblock %}

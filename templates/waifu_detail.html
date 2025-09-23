@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-4">
+        {% if waifu.image_url %}
+        <img src="{{ waifu.image_url }}" class="img-fluid rounded" alt="{{ waifu.name }}" style="max-height: 420px; width: 100%; object-fit: cover;">
+        {% else %}
+        <div class="d-flex align-items-center justify-content-center bg-light rounded" style="height: 420px;">
+            <i class="fas fa-heart fa-4x text-muted"></i>
+        </div>
+        {% endif %}
+    </div>
+    <div class="col-md-8">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+                <h1 class="mb-1"><i class="fas fa-heart text-danger"></i> {{ waifu.name }}</h1>
+                <p class="mb-1 text-muted">
+                    {% if waifu.source_type == 'anime' %}
+                        <i class="fas fa-tv"></i> Anime : 
+                        <a href="{{ url_for('anime_detail', id=waifu.anime_id) }}">{{ waifu.anime_title }}</a>
+                    {% elif waifu.source_type == 'videogame' %}
+                        <i class="fas fa-gamepad"></i> Jeu vidéo : 
+                        <a href="{{ url_for('videogame_detail', id=waifu.videogame_id) }}">{{ waifu.videogame_title }}</a>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+
+        {% if waifu.description %}
+        <p class="lead">{{ waifu.description }}</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="mt-4 text-center">
+    <a href="{{ url_for('waifus_list') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Retour aux waifus
+    </a>
+</div>
+{% endblock %}

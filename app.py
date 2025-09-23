@@ -136,13 +136,16 @@ def ensure_tables():
     waifu_sql = """
     CREATE TABLE IF NOT EXISTS waifu (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        name VARCHAR(100) NOT NULL,
-        anime_id INT NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        anime_id INT NULL,
+        videogame_id INT NULL,
         description TEXT,
         image_url VARCHAR(500),
         added_by INT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE
+        FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE,
+        FOREIGN KEY (videogame_id) REFERENCES videogame(id) ON DELETE CASCADE,
+        CHECK ((anime_id IS NOT NULL AND videogame_id IS NULL) OR (anime_id IS NULL AND videogame_id IS NOT NULL))
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     """
     user_waifu_top5_sql = """
@@ -156,6 +159,41 @@ def ensure_tables():
         FOREIGN KEY (waifu_id) REFERENCES waifu(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     """
+    videogame_sql = """
+    CREATE TABLE IF NOT EXISTS videogame (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        genre VARCHAR(100),
+        year INT,
+        platform VARCHAR(100),
+        cover_url VARCHAR(500),
+        added_by INT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
+    videogame_review_sql = """
+    CREATE TABLE IF NOT EXISTS videogame_review (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        rating TINYINT NOT NULL,
+        comment TEXT,
+        user_id INT,
+        videogame_id INT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (videogame_id) REFERENCES videogame(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
+    user_videogame_top10_sql = """
+    CREATE TABLE IF NOT EXISTS user_videogame_top10 (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        videogame_id INT NOT NULL,
+        rank_position INT NOT NULL,
+        is_public TINYINT(1) DEFAULT 0,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        FOREIGN KEY (videogame_id) REFERENCES videogame(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
     try:
         with get_connection() as conn:
             with conn.cursor() as cursor:
@@ -165,6 +203,18 @@ def ensure_tables():
                 cursor.execute(user_top10_sql)
                 cursor.execute(waifu_sql)
                 cursor.execute(user_waifu_top5_sql)
+                cursor.execute(videogame_sql)
+                cursor.execute(videogame_review_sql)
+                cursor.execute(user_videogame_top10_sql)
+                
+                # Ajouter la colonne videogame_id si elle n'existe pas
+                try:
+                    cursor.execute("ALTER TABLE waifu ADD COLUMN videogame_id INT NULL")
+                    cursor.execute("ALTER TABLE waifu ADD FOREIGN KEY (videogame_id) REFERENCES videogame(id) ON DELETE CASCADE")
+                except Exception:
+                    # La colonne existe déjà ou autre erreur, on continue
+                    pass
+                    
             conn.commit()
     except Exception as e:
         # Ne pas planter l'application : on loggue pour l'admin et on continue.
@@ -634,12 +684,49 @@ def update_top10():
 @app.route('/waifus')
 def waifus_list():
     """Liste de toutes les waifus"""
-    waifus = fetch_all("""
-        SELECT w.*, a.title as anime_title
-        FROM waifu w
-        JOIN anime a ON w.anime_id = a.id
-        ORDER BY w.name
-    """)
+    try:
+        waifus = fetch_all("""
+            SELECT w.*, 
+                   a.title as anime_title,
+                   v.title as videogame_title,
+                   CASE 
+                       WHEN w.anime_id IS NOT NULL THEN 'anime'
+                       WHEN w.videogame_id IS NOT NULL THEN 'videogame'
+                   END as source_type
+            FROM waifu w
+            LEFT JOIN anime a ON w.anime_id = a.id
+            LEFT JOIN videogame v ON w.videogame_id = v.id
+            ORDER BY w.name
+        """)
+    except Exception as e:
+        # Si erreur de colonne manquante, essayer de mettre à jour la table
+        msg = str(e).lower()
+        if 'videogame_id' in msg and ('unknown column' in msg or '1054' in msg):
+            flash("Mise à jour de la structure de la base de données en cours...")
+            ensure_tables()
+            try:
+                # Réessayer après mise à jour
+                waifus = fetch_all("""
+                    SELECT w.*, 
+                           a.title as anime_title,
+                           v.title as videogame_title,
+                           CASE 
+                               WHEN w.anime_id IS NOT NULL THEN 'anime'
+                               WHEN w.videogame_id IS NOT NULL THEN 'videogame'
+                           END as source_type
+                    FROM waifu w
+                    LEFT JOIN anime a ON w.anime_id = a.id
+                    LEFT JOIN videogame v ON w.videogame_id = v.id
+                    ORDER BY w.name
+                """)
+            except Exception as e2:
+                flash("Erreur lors de la lecture des waifus. Voir la console pour plus de détails.")
+                print(f"Erreur après tentative de mise à jour: {e2}")
+                waifus = []
+        else:
+            flash("Erreur lors de la lecture des waifus.")
+            print(f"Erreur waifus_list: {e}")
+            waifus = []
     
     return render_template('waifus_list.html', waifus=waifus)
 
@@ -649,29 +736,282 @@ def add_waifu():
     """Ajouter une nouvelle waifu"""
     if request.method == 'POST':
         name = request.form['name']
-        anime_id = request.form['anime_id']
+        source_type = request.form['source_type']  # 'anime' ou 'videogame'
+        source_id = request.form['source_id']
         description = request.form.get('description', '')
         image_url = request.form.get('image_url', '')
         
+        # Convertir correctement les IDs selon le type de source
+        if source_type == 'anime' and source_id:
+            anime_id = int(source_id)
+            videogame_id = None
+        elif source_type == 'videogame' and source_id:
+            anime_id = None
+            videogame_id = int(source_id)
+        else:
+            # Cas d'erreur : aucune source valide sélectionnée
+            flash('Veuillez sélectionner une source valide pour la waifu')
+            animes = fetch_all("SELECT id, title FROM anime ORDER BY title")
+            videogames = fetch_all("SELECT id, title FROM videogame ORDER BY title")
+            return render_template('add_waifu.html', animes=animes, videogames=videogames)
+        
         execute_query(
-            "INSERT INTO waifu (name, anime_id, description, image_url, added_by) VALUES (%s, %s, %s, %s, %s)",
-            (name, anime_id, description, image_url, session['user_id'])
+            "INSERT INTO waifu (name, anime_id, videogame_id, description, image_url, added_by) VALUES (%s, %s, %s, %s, %s, %s)",
+            (name, anime_id, videogame_id, description, image_url, session['user_id'])
         )
         
         flash('Waifu ajoutée avec succès')
         return redirect(url_for('waifus_list'))
     
-    # Récupérer tous les animes pour la sélection
+    # Récupérer tous les animes et jeux vidéo pour la sélection
     animes = fetch_all("SELECT id, title FROM anime ORDER BY title")
-    return render_template('add_waifu.html', animes=animes)
+    videogames = fetch_all("SELECT id, title FROM videogame ORDER BY title")
+    return render_template('add_waifu.html', animes=animes, videogames=videogames)
+
+@app.route('/videogames')
+def videogames_list():
+    """Liste de tous les jeux vidéo"""
+    q = (request.args.get('q') or '').strip()
+    sort = request.args.get('sort', 'recent')
+
+    # Liste blanche des tris autorisés
+    _allowed_sorts = {
+        'recent': 'v.created_at DESC, v.id DESC',
+        'title_asc': 'LOWER(v.title) ASC, v.id DESC',
+        'title_desc': 'LOWER(v.title) DESC, v.id DESC',
+        'rating_desc': 'AVG(r.rating) DESC, v.id DESC'
+    }
+    order_clause = _allowed_sorts.get(sort, _allowed_sorts['recent'])
+
+    try:
+        if q:
+            pattern = f"%{q}%"
+            videogames = fetch_all(
+                f"""
+                SELECT v.*, 
+                       COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                       COUNT(r.id) AS review_count
+                FROM videogame v
+                LEFT JOIN videogame_review r ON v.id = r.videogame_id
+                WHERE LOWER(v.title) LIKE %s OR LOWER(v.description) LIKE %s
+                GROUP BY v.id
+                ORDER BY {order_clause}
+                """,
+                (pattern.lower(), pattern.lower())
+            )
+        else:
+            videogames = fetch_all(
+                f"""
+                SELECT v.*, 
+                       COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                       COUNT(r.id) AS review_count
+                FROM videogame v
+                LEFT JOIN videogame_review r ON v.id = r.videogame_id
+                GROUP BY v.id
+                ORDER BY {order_clause}
+                """
+            )
+    except Exception as e:
+        flash("Erreur lors de la lecture des jeux vidéo.")
+        videogames = []
+
+    return render_template('videogames_list.html', videogames=videogames, sort=sort)
+
+@app.route('/add_videogame', methods=['GET', 'POST'])
+@login_required
+def add_videogame():
+    """Ajouter un nouveau jeu vidéo"""
+    if request.method == 'POST':
+        title = request.form['title']
+        description = request.form['description']
+        genre = request.form['genre']
+        year = request.form['year']
+        platform = request.form['platform']
+        cover_url = request.form.get('cover_url', '')
+        
+        execute_query(
+            "INSERT INTO videogame (title, description, genre, year, platform, cover_url, added_by) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            (title, description, genre, int(year), platform, cover_url, session['user_id'])
+        )
+        
+        flash('Jeu vidéo ajouté avec succès')
+        return redirect(url_for('videogames_list'))
+    
+    return render_template('add_videogame.html')
+
+@app.route('/videogame/<int:id>')
+def videogame_detail(id):
+    """Détail d'un jeu vidéo"""
+    videogame = fetch_one("SELECT * FROM videogame WHERE id = %s", (id,))
+    if not videogame:
+        flash('Jeu vidéo non trouvé')
+        return redirect(url_for('videogames_list'))
+    
+    info = get_user_table_info()
+    user_tbl = info['table']
+    # Récupérer les avis avec les noms d'utilisateur
+    reviews = fetch_all(f"""
+        SELECT r.*, u.username 
+        FROM videogame_review r 
+        JOIN {user_tbl} u ON r.user_id = u.id 
+        WHERE r.videogame_id = %s 
+        ORDER BY r.created_at DESC
+    """, (id,))
+    
+    # Calculer la moyenne des notes
+    avg_rating = 0
+    if reviews:
+        avg_rating = sum(review['rating'] for review in reviews) / len(reviews)
+    
+    return render_template('videogame_detail.html', videogame=videogame, reviews=reviews, avg_rating=round(avg_rating, 1))
+
+@app.route('/add_videogame_review/<int:videogame_id>', methods=['POST'])
+@login_required
+def add_videogame_review(videogame_id):
+    """Ajouter/modifier un avis sur un jeu vidéo"""
+    rating = int(request.form['rating'])
+    comment = request.form['comment']
+    
+    # Vérifier si l'utilisateur a déjà noté ce jeu
+    existing_review = fetch_one(
+        "SELECT id FROM videogame_review WHERE user_id = %s AND videogame_id = %s",
+        (session['user_id'], videogame_id)
+    )
+    
+    if existing_review:
+        # Mettre à jour l'avis existant
+        execute_query(
+            "UPDATE videogame_review SET rating = %s, comment = %s, created_at = NOW() WHERE user_id = %s AND videogame_id = %s",
+            (rating, comment, session['user_id'], videogame_id)
+        )
+        flash('Avis modifié avec succès')
+    else:
+        # Créer un nouvel avis
+        execute_query(
+            "INSERT INTO videogame_review (rating, comment, user_id, videogame_id) VALUES (%s, %s, %s, %s)",
+            (rating, comment, session['user_id'], videogame_id)
+        )
+        flash('Avis ajouté avec succès')
+    
+    return redirect(url_for('videogame_detail', id=videogame_id))
+
+@app.route('/videogame-top10/users')
+def videogame_top10_users():
+    """Liste des utilisateurs ayant un top 10 jeux vidéo public"""
+    info = get_user_table_info()
+    user_tbl = info['table']
+    
+    users_with_top10 = fetch_all(f"""
+        SELECT DISTINCT u.id, u.username, COUNT(t.id) as videogame_count
+        FROM {user_tbl} u
+        JOIN user_videogame_top10 t ON u.id = t.user_id
+        WHERE t.is_public = 1
+        GROUP BY u.id, u.username
+        ORDER BY u.username
+    """)
+    
+    return render_template('videogame_top10_users.html', users=users_with_top10)
+
+@app.route('/videogame-top10/user/<int:user_id>')
+def view_user_videogame_top10(user_id):
+    """Voir le top 10 jeux vidéo d'un utilisateur"""
+    info = get_user_table_info()
+    user_tbl = info['table']
+    
+    # Récupérer l'utilisateur
+    user = fetch_one(f"SELECT id, username FROM {user_tbl} WHERE id = %s", (user_id,))
+    if not user:
+        flash("Utilisateur non trouvé")
+        return redirect(url_for('index'))
+    
+    # Vérifier si c'est le propriétaire ou si le top10 est public
+    current_user_obj = get_current_user()
+    is_owner = current_user_obj and current_user_obj.id == user_id
+    
+    if not is_owner:
+        # Vérifier qu'il y a au moins un jeu public
+        public_check = fetch_one(
+            "SELECT id FROM user_videogame_top10 WHERE user_id = %s AND is_public = 1 LIMIT 1",
+            (user_id,)
+        )
+        if not public_check:
+            flash("Ce top 10 jeux vidéo est privé")
+            return redirect(url_for('videogame_top10_users'))
+    
+    # Récupérer le top 10 (public seulement si pas propriétaire)
+    where_clause = "" if is_owner else "AND t.is_public = 1"
+    
+    top10 = fetch_all(f"""
+        SELECT t.rank_position, t.is_public, v.id, v.title, v.cover_url, v.genre, v.year, v.platform,
+               COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating
+        FROM user_videogame_top10 t
+        JOIN videogame v ON t.videogame_id = v.id
+        LEFT JOIN videogame_review r ON v.id = r.videogame_id
+        WHERE t.user_id = %s {where_clause}
+        GROUP BY t.rank_position, t.is_public, v.id, v.title, v.cover_url, v.genre, v.year, v.platform
+        ORDER BY t.rank_position
+    """, (user_id,))
+    
+    return render_template('view_videogame_top10.html', user=user, top10=top10, is_owner=is_owner)
+
+@app.route('/my-videogame-top10')
+@login_required
+def my_videogame_top10():
+    """Gérer son propre top 10 jeux vidéo"""
+    user_id = session['user_id']
+    
+    # Récupérer le top 10 actuel
+    top10 = fetch_all("""
+        SELECT t.rank_position, t.is_public, v.id, v.title, v.cover_url
+        FROM user_videogame_top10 t
+        JOIN videogame v ON t.videogame_id = v.id
+        WHERE t.user_id = %s
+        ORDER BY t.rank_position
+    """, (user_id,))
+    
+    # Récupérer tous les jeux vidéo pour la sélection
+    all_videogames = fetch_all("SELECT id, title FROM videogame ORDER BY title")
+    
+    return render_template('manage_videogame_top10.html', top10=top10, all_videogames=all_videogames)
+
+@app.route('/my-videogame-top10/update', methods=['POST'])
+@login_required
+def update_videogame_top10():
+    """Mettre à jour son top 10 jeux vidéo"""
+    user_id = session['user_id']
+    
+    # Supprimer l'ancien top 10
+    execute_query("DELETE FROM user_videogame_top10 WHERE user_id = %s", (user_id,))
+    
+    # Récupérer la visibilité globale
+    is_public = 1 if request.form.get('is_public') == 'on' else 0
+    
+    # Ajouter les nouveaux jeux
+    for i in range(1, 11):
+        videogame_id = request.form.get(f'videogame_{i}')
+        if videogame_id and videogame_id.isdigit():
+            execute_query(
+                "INSERT INTO user_videogame_top10 (user_id, videogame_id, rank_position, is_public) VALUES (%s, %s, %s, %s)",
+                (user_id, int(videogame_id), i, is_public)
+            )
+    
+    flash("Votre top 10 jeux vidéo a été mis à jour avec succès")
+    return redirect(url_for('my_videogame_top10'))
 
 @app.route('/waifu/<int:id>')
 def waifu_detail(id):
     """Détail d'une waifu"""
     waifu = fetch_one("""
-        SELECT w.*, a.title as anime_title, a.id as anime_id
+        SELECT w.*, 
+               a.title as anime_title, a.id as anime_id,
+               v.title as videogame_title, v.id as videogame_id,
+               CASE 
+                   WHEN w.anime_id IS NOT NULL THEN 'anime'
+                   WHEN w.videogame_id IS NOT NULL THEN 'videogame'
+               END as source_type
         FROM waifu w
-        JOIN anime a ON w.anime_id = a.id
+        LEFT JOIN anime a ON w.anime_id = a.id
+        LEFT JOIN videogame v ON w.videogame_id = v.id
         WHERE w.id = %s
     """, (id,))
     
@@ -729,10 +1069,16 @@ def view_user_waifu_top5(user_id):
     
     top5 = fetch_all(f"""
         SELECT t.rank_position, t.is_public, w.id, w.name, w.image_url, w.description,
-               a.title as anime_title, a.id as anime_id
+               a.title as anime_title, a.id as anime_id,
+               v.title as videogame_title, v.id as videogame_id,
+               CASE 
+                   WHEN w.anime_id IS NOT NULL THEN 'anime'
+                   WHEN w.videogame_id IS NOT NULL THEN 'videogame'
+               END as source_type
         FROM user_waifu_top5 t
         JOIN waifu w ON t.waifu_id = w.id
-        JOIN anime a ON w.anime_id = a.id
+        LEFT JOIN anime a ON w.anime_id = a.id
+        LEFT JOIN videogame v ON w.videogame_id = v.id
         WHERE t.user_id = %s {where_clause}
         ORDER BY t.rank_position
     """, (user_id,))
@@ -748,19 +1094,32 @@ def my_waifu_top5():
     # Récupérer le top 5 actuel
     top5 = fetch_all("""
         SELECT t.rank_position, t.is_public, w.id, w.name, w.image_url,
-               a.title as anime_title
+               a.title as anime_title,
+               v.title as videogame_title,
+               CASE 
+                   WHEN w.anime_id IS NOT NULL THEN 'anime'
+                   WHEN w.videogame_id IS NOT NULL THEN 'videogame'
+               END as source_title
         FROM user_waifu_top5 t
         JOIN waifu w ON t.waifu_id = w.id
-        JOIN anime a ON w.anime_id = a.id
+        LEFT JOIN anime a ON w.anime_id = a.id
+        LEFT JOIN videogame v ON w.videogame_id = v.id
         WHERE t.user_id = %s
         ORDER BY t.rank_position
     """, (user_id,))
     
     # Récupérer toutes les waifus pour la sélection
     all_waifus = fetch_all("""
-        SELECT w.id, w.name, a.title as anime_title
+        SELECT w.id, w.name, 
+               a.title as anime_title,
+               v.title as videogame_title,
+               CASE 
+                   WHEN w.anime_id IS NOT NULL THEN a.title
+                   WHEN w.videogame_id IS NOT NULL THEN v.title
+               END as source_title
         FROM waifu w
-        JOIN anime a ON w.anime_id = a.id
+        LEFT JOIN anime a ON w.anime_id = a.id
+        LEFT JOIN videogame v ON w.videogame_id = v.id
         ORDER BY w.name
     """)
     

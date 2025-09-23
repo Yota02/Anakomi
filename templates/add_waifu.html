@@ -11,11 +11,28 @@
                     <input type="text" class="form-control" id="name" name="name" required>
                 </div>
                 <div class="mb-3">
+                    <label for="source_type" class="form-label">Type de source</label>
+                    <select class="form-select" id="source_type" name="source_type" required onchange="toggleSourceOptions()">
+                        <option value="">-- Choisir le type --</option>
+                        <option value="anime">Anime</option>
+                        <option value="videogame">Jeu Vidéo</option>
+                    </select>
+                </div>
+                <div class="mb-3" id="anime_select" style="display: none;">
                     <label for="anime_id" class="form-label">Anime d'origine</label>
-                    <select class="form-select" id="anime_id" name="anime_id" required>
+                    <select class="form-select" id="anime_id" name="source_id">
                         <option value="">-- Choisir un anime --</option>
                         {% for anime in animes %}
                         <option value="{{ anime.id }}">{{ anime.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3" id="videogame_select" style="display: none;">
+                    <label for="videogame_id" class="form-label">Jeu vidéo d'origine</label>
+                    <select class="form-select" id="videogame_id" name="source_id">
+                        <option value="">-- Choisir un jeu vidéo --</option>
+                        {% for videogame in videogames %}
+                        <option value="{{ videogame.id }}">{{ videogame.title }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -42,4 +59,39 @@
         </div>
     </div>
 </div>
+
+<script>
+function toggleSourceOptions() {
+    const sourceType = document.getElementById('source_type').value;
+    const animeSelect = document.getElementById('anime_select');
+    const videogameSelect = document.getElementById('videogame_select');
+    const animeField = document.getElementById('anime_id');
+    const videogameField = document.getElementById('videogame_id');
+    
+    if (sourceType === 'anime') {
+        animeSelect.style.display = 'block';
+        videogameSelect.style.display = 'none';
+        animeField.required = true;
+        animeField.name = 'source_id';
+        videogameField.required = false;
+        videogameField.name = '';
+        videogameField.value = '';
+    } else if (sourceType === 'videogame') {
+        animeSelect.style.display = 'none';
+        videogameSelect.style.display = 'block';
+        animeField.required = false;
+        animeField.name = '';
+        animeField.value = '';
+        videogameField.required = true;
+        videogameField.name = 'source_id';
+    } else {
+        animeSelect.style.display = 'none';
+        videogameSelect.style.display = 'none';
+        animeField.required = false;
+        animeField.name = '';
+        videogameField.required = false;
+        videogameField.name = '';
+    }
+}
+</script>
 {% endblock %}

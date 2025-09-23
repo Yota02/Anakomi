@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-gamepad text-primary"></i> Mon Top 10 Jeux Vidéo</h1>
+    <a href="{{ url_for('view_user_videogame_top10', user_id=current_user.id) }}" class="btn btn-outline-primary">
+        <i class="fas fa-eye"></i> Aperçu
+    </a>
+</div>
+
+<form method="POST" action="{{ url_for('update_videogame_top10') }}">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="is_public" name="is_public" 
+                       {% if top10 and top10[0].is_public %}checked{% endif %}>
+                <label class="form-check-label" for="is_public">
+                    <strong>Rendre mon top 10 jeux vidéo public</strong>
+                    <small class="d-block text-muted">
+                        Si activé, les autres utilisateurs pourront voir votre top 10 jeux vidéo
+                    </small>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        {% for i in range(1, 11) %}
+        <div class="col-md-6 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <label class="form-label">
+                        <span class="badge bg-primary me-2">#{{ i }}</span>
+                        Position {{ i }}
+                    </label>
+                    <select name="videogame_{{ i }}" class="form-select">
+                        <option value="">-- Choisir un jeu vidéo --</option>
+                        {% for videogame in all_videogames %}
+                        <option value="{{ videogame.id }}" 
+                                {% for top_item in top10 %}
+                                    {% if top_item.rank_position == i and top_item.id == videogame.id %}selected{% endif %}
+                                {% endfor %}>
+                            {{ videogame.title }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="text-center mt-4">
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="fas fa-save"></i> Sauvegarder mon top 10 jeux vidéo
+        </button>
+    </div>
+</form>
+
+<div class="mt-4 text-center">
+    <a href="{{ url_for('videogames_list') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-gamepad"></i> Voir tous les jeux vidéo
+    </a>
+    <a href="{{ url_for('add_videogame') }}" class="btn btn-outline-primary">
+        <i class="fas fa-plus"></i> Ajouter un jeu vidéo
+    </a>
+</div>
+{% endblock %}

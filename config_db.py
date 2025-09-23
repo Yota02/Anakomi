@@ -181,7 +181,7 @@ def create_database():
         print("Vérifiez que MySQL est démarré et que les identifiants sont corrects.")
 
 def ensure_tables():
-    """Crée les tables 'anime', 'review', 'user_top10', 'waifu' et 'user_waifu_top5' si elles n'existent pas (opération sûre)."""
+    """Crée les tables 'anime', 'review', 'user_top10', 'waifu', 'user_waifu_top5', 'videogame' et 'videogame_review' si elles n'existent pas (opération sûre)."""
     anime_sql = """
     CREATE TABLE IF NOT EXISTS anime (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -230,17 +230,61 @@ def ensure_tables():
         UNIQUE KEY unique_user_anime (user_id, anime_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     """
+    videogame_sql = """
+    CREATE TABLE IF NOT EXISTS videogame (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        genre VARCHAR(100),
+        year INT,
+        platform VARCHAR(100),
+        cover_url VARCHAR(500),
+        added_by INT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (added_by) REFERENCES user(id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
+    videogame_review_sql = """
+    CREATE TABLE IF NOT EXISTS videogame_review (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        videogame_id INT,
+        user_id INT,
+        rating INT CHECK (rating >= 1 AND rating <= 10),
+        comment TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (videogame_id) REFERENCES videogame(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
+    videogame_top10_sql = """
+    CREATE TABLE IF NOT EXISTS user_videogame_top10 (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        videogame_id INT NOT NULL,
+        rank_position TINYINT NOT NULL CHECK (rank_position >= 1 AND rank_position <= 10),
+        is_public BOOLEAN DEFAULT TRUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        FOREIGN KEY (videogame_id) REFERENCES videogame(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_user_vg_position (user_id, rank_position),
+        UNIQUE KEY unique_user_vg (user_id, videogame_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
     waifu_sql = """
     CREATE TABLE IF NOT EXISTS waifu (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        anime_id INT NOT NULL,
+        anime_id INT NULL,
+        videogame_id INT NULL,
         description TEXT,
         image_url VARCHAR(500),
         added_by INT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE,
-        FOREIGN KEY (added_by) REFERENCES user(id) ON DELETE SET NULL
+        FOREIGN KEY (videogame_id) REFERENCES videogame(id) ON DELETE CASCADE,
+        FOREIGN KEY (added_by) REFERENCES user(id) ON DELETE SET NULL,
+        CHECK ((anime_id IS NOT NULL AND videogame_id IS NULL) OR (anime_id IS NULL AND videogame_id IS NOT NULL))
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     """
     waifu_top5_sql = """
@@ -265,8 +309,30 @@ def ensure_tables():
                 cursor.execute(review_sql)
                 cursor.execute(user_sql)
                 cursor.execute(top10_sql)
+                cursor.execute(videogame_sql)
+                cursor.execute(videogame_review_sql)
+                cursor.execute(videogame_top10_sql)
                 cursor.execute(waifu_sql)
                 cursor.execute(waifu_top5_sql)
+                
+                # Ajouter la colonne videogame_id si elle n'existe pas
+                try:
+                    cursor.execute("ALTER TABLE waifu ADD COLUMN videogame_id INT NULL")
+                    cursor.execute("ALTER TABLE waifu ADD FOREIGN KEY (videogame_id) REFERENCES videogame(id) ON DELETE CASCADE")
+                except Exception:
+                    # La colonne existe déjà ou autre erreur, on continue
+                    pass
+                
+                # Modifier la contrainte CHECK si nécessaire
+                try:
+                    cursor.execute("ALTER TABLE waifu DROP CHECK waifu_chk_1")
+                except Exception:
+                    pass
+                try:
+                    cursor.execute("ALTER TABLE waifu ADD CONSTRAINT waifu_source_check CHECK ((anime_id IS NOT NULL AND videogame_id IS NULL) OR (anime_id IS NULL AND videogame_id IS NOT NULL))")
+                except Exception:
+                    pass
+                    
             conn.commit()
     except Exception as e:
         # Ne pas planter l'application : on loggue pour l'admin et on continue.

@@ -63,9 +63,11 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ url_for('top10_users') }}">Top 10 Animes</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('videogame_top10_users') }}">Top 10 Jeux Vidéo</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('waifu_top5_users') }}">Top 5 Waifus</a></li>
                         </ul>
                     </li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('videogames_list') }}">Jeux Vidéo</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('waifus_list') }}">Waifus</a></li>
                     {% if current_user %}
                         <li class="nav-item dropdown">
@@ -74,6 +76,7 @@
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('my_top10') }}">Mon Top 10</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('my_videogame_top10') }}">Mon Top 10 Jeux Vidéo</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('my_waifu_top5') }}">Mon Top 5 Waifu</a></li>
                             </ul>
                         </li>
@@ -83,6 +86,7 @@
                             </a>
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('add_anime') }}">Ajouter Anime</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('add_videogame') }}">Ajouter Jeu Vidéo</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('add_waifu') }}">Ajouter Waifu</a></li>
                             </ul>
                         </li>

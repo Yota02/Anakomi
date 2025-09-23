@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>
+        <i class="fas fa-gamepad text-primary"></i> 
+        Top 10 Jeux Vidéo de {{ user.username }}
+        {% if is_owner %}
+            <span class="badge bg-secondary">Votre top 10</span>
+        {% endif %}
+    </h1>
+    {% if is_owner %}
+        <a href="{{ url_for('my_videogame_top10') }}" class="btn btn-outline-primary">
+            <i class="fas fa-edit"></i> Modifier
+        </a>
+    {% endif %}
+</div>
+
+{% if top10 %}
+    <div class="row">
+        {% for item in top10 %}
+        <div class="col-lg-6 mb-3">
+            <div class="card">
+                <div class="row g-0 align-items-center">
+                    <div class="col-md-2 text-center">
+                        <div class="rank-badge bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" 
+                             style="width: 50px; height: 50px; font-size: 1.2rem; font-weight: bold;">
+                            #{{ item.rank_position }}
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        {% if item.cover_url %}
+                        <img src="{{ item.cover_url }}" class="img-fluid rounded" alt="{{ item.title }}" 
+                             style="height: 120px; width: 100%; object-fit: cover;">
+                        {% else %}
+                        <div class="d-flex align-items-center justify-content-center bg-light rounded" 
+                             style="height: 120px;">
+                            <i class="fas fa-gamepad fa-2x text-muted"></i>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-7">
+                        <div class="card-body">
+                            <h6 class="card-title">{{ item.title }}</h6>
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-gamepad"></i> {{ item.platform or 'Plateforme inconnue' }} · 
+                                    <i class="fas fa-tags"></i> {{ item.genre or 'Genre inconnu' }} · 
+                                    <i class="fas fa-calendar"></i> {{ item.year or 'Année inconnue' }}
+                                </small>
+                            </p>
+                            {% if item.avg_rating > 0 %}
+                            <div class="mb-2">
+                                {% for i in range(1, 6) %}
+                                    {% if i <= item.avg_rating %}
+                                        <i class="fas fa-star text-warning"></i>
+                                    {% else %}
+                                        <i class="far fa-star text-warning"></i>
+                                    {% endif %}
+                                {% endfor %}
+                                <small class="text-muted ms-1">{{ item.avg_rating }}/5</small>
+                            </div>
+                            {% endif %}
+                            <div class="d-flex justify-content-between align-items-center">
+                                <a href="{{ url_for('videogame_detail', id=item.id) }}" class="btn btn-sm btn-primary">
+                                    Voir détails
+                                </a>
+                                {% if is_owner %}
+                                    <small class="text-muted">
+                                        <i class="fas fa-{{ 'eye' if item.is_public else 'eye-slash' }}"></i>
+                                        {{ 'Public' if item.is_public else 'Privé' }}
+                                    </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-5">
+        <h3>Aucun jeu vidéo dans ce top 10</h3>
+        {% if is_owner %}
+            <p class="text-muted">Ajoutez vos jeux vidéo favoris !</p>
+            <a href="{{ url_for('my_videogame_top10') }}" class="btn btn-primary mt-3">Créer mon top 10 jeux vidéo</a>
+        {% endif %}
+    </div>
+{% endif %}
+
+<div class="mt-4 text-center">
+    <a href="{{ url_for('videogame_top10_users') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Retour aux tops 10 jeux vidéo
+    </a>
+</div>
+{% endblock %}
