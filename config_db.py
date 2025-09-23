@@ -181,7 +181,7 @@ def create_database():
         print("Vérifiez que MySQL est démarré et que les identifiants sont corrects.")
 
 def ensure_tables():
-    """Crée les tables 'anime' et 'review' si elles n'existent pas (opération sûre)."""
+    """Crée les tables 'anime', 'review' et 'user_top10' si elles n'existent pas (opération sûre)."""
     anime_sql = """
     CREATE TABLE IF NOT EXISTS anime (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -215,12 +215,28 @@ def ensure_tables():
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     """
+    top10_sql = """
+    CREATE TABLE IF NOT EXISTS user_top10 (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        anime_id INT NOT NULL,
+        rank_position TINYINT NOT NULL CHECK (rank_position >= 1 AND rank_position <= 10),
+        is_public BOOLEAN DEFAULT TRUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_user_position (user_id, rank_position),
+        UNIQUE KEY unique_user_anime (user_id, anime_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
     try:
         with get_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(anime_sql)
                 cursor.execute(review_sql)
                 cursor.execute(user_sql)
+                cursor.execute(top10_sql)
             conn.commit()
     except Exception as e:
         # Ne pas planter l'application : on loggue pour l'admin et on continue.

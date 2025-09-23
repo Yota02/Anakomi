@@ -57,8 +57,10 @@
             </button>
             <div class="collapse navbar-collapse" id="navMain">
                 <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('top10_users') }}">Tops 10</a></li>
                     {% if current_user %}
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('add_anime') }}">Ajouter</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('my_top10') }}">Mon Top 10</a></li>
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Déconnexion ({{ current_user.username }})</a></li>
                     {% else %}
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Connexion</a></li>

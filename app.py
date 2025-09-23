@@ -122,12 +122,24 @@ def ensure_tables():
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
      """
+    user_top10_sql = """
+    CREATE TABLE IF NOT EXISTS user_top10 (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        anime_id INT NOT NULL,
+        rank_position INT NOT NULL,
+        is_public TINYINT(1) DEFAULT 0,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
     try:
         with get_connection() as conn:
             with conn.cursor() as cursor:
                 cursor.execute(anime_sql)
                 cursor.execute(review_sql)
                 cursor.execute(user_sql)
+                cursor.execute(user_top10_sql)
             conn.commit()
     except Exception as e:
         # Ne pas planter l'application : on loggue pour l'admin et on continue.
@@ -490,6 +502,109 @@ def reset_password(token):
         return redirect(url_for('login'))
 
     return render_template('password_reset.html', token=token)
+
+@app.route('/top10/users')
+def top10_users():
+    """Liste des utilisateurs ayant un top 10 public"""
+    info = get_user_table_info()
+    user_tbl = info['table']
+    
+    users_with_top10 = fetch_all(f"""
+        SELECT DISTINCT u.id, u.username, COUNT(t.id) as anime_count
+        FROM {user_tbl} u
+        JOIN user_top10 t ON u.id = t.user_id
+        WHERE t.is_public = 1
+        GROUP BY u.id, u.username
+        ORDER BY u.username
+    """)
+    
+    return render_template('top10_users.html', users=users_with_top10)
+
+@app.route('/top10/user/<int:user_id>')
+def view_user_top10(user_id):
+    """Voir le top 10 d'un utilisateur"""
+    info = get_user_table_info()
+    user_tbl = info['table']
+    
+    # Récupérer l'utilisateur
+    user = fetch_one(f"SELECT id, username FROM {user_tbl} WHERE id = %s", (user_id,))
+    if not user:
+        flash("Utilisateur non trouvé")
+        return redirect(url_for('index'))
+    
+    # Vérifier si c'est le propriétaire ou si le top10 est public
+    current_user_obj = get_current_user()
+    is_owner = current_user_obj and current_user_obj.id == user_id
+    
+    if not is_owner:
+        # Vérifier qu'il y a au moins un anime public
+        public_check = fetch_one(
+            "SELECT id FROM user_top10 WHERE user_id = %s AND is_public = 1 LIMIT 1",
+            (user_id,)
+        )
+        if not public_check:
+            flash("Ce top 10 est privé")
+            return redirect(url_for('top10_users'))
+    
+    # Récupérer le top 10 (public seulement si pas propriétaire)
+    where_clause = "" if is_owner else "AND t.is_public = 1"
+    
+    top10 = fetch_all(f"""
+        SELECT t.rank_position, t.is_public, a.id, a.title, a.cover_url, a.genre, a.year,
+               COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating
+        FROM user_top10 t
+        JOIN anime a ON t.anime_id = a.id
+        LEFT JOIN review r ON a.id = r.anime_id
+        WHERE t.user_id = %s {where_clause}
+        GROUP BY t.rank_position, t.is_public, a.id, a.title, a.cover_url, a.genre, a.year
+        ORDER BY t.rank_position
+    """, (user_id,))
+    
+    return render_template('view_top10.html', user=user, top10=top10, is_owner=is_owner)
+
+@app.route('/my-top10')
+@login_required
+def my_top10():
+    """Gérer son propre top 10"""
+    user_id = session['user_id']
+    
+    # Récupérer le top 10 actuel
+    top10 = fetch_all("""
+        SELECT t.rank_position, t.is_public, a.id, a.title, a.cover_url
+        FROM user_top10 t
+        JOIN anime a ON t.anime_id = a.id
+        WHERE t.user_id = %s
+        ORDER BY t.rank_position
+    """, (user_id,))
+    
+    # Récupérer tous les animes pour la sélection
+    all_animes = fetch_all("SELECT id, title FROM anime ORDER BY title")
+    
+    return render_template('manage_top10.html', top10=top10, all_animes=all_animes)
+
+@app.route('/my-top10/update', methods=['POST'])
+@login_required
+def update_top10():
+    """Mettre à jour son top 10"""
+    user_id = session['user_id']
+    
+    # Supprimer l'ancien top 10
+    execute_query("DELETE FROM user_top10 WHERE user_id = %s", (user_id,))
+    
+    # Récupérer la visibilité globale
+    is_public = 1 if request.form.get('is_public') == 'on' else 0
+    
+    # Ajouter les nouveaux animes
+    for i in range(1, 11):
+        anime_id = request.form.get(f'anime_{i}')
+        if anime_id and anime_id.isdigit():
+            execute_query(
+                "INSERT INTO user_top10 (user_id, anime_id, rank_position, is_public) VALUES (%s, %s, %s, %s)",
+                (user_id, int(anime_id), i, is_public)
+            )
+    
+    flash("Votre top 10 a été mis à jour avec succès")
+    return redirect(url_for('my_top10'))
 
 if __name__ == '__main__':
     # Hôte/port et mode debug contrôlés par des variables d'environnement
