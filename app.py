@@ -695,60 +695,131 @@ def update_top10():
 
 @app.route('/waifus')
 def waifus_list():
-    """Liste de toutes les waifus"""
+    """Liste de toutes les waifus (avec recherche et tri)."""
+    q = (request.args.get('q') or '').strip()
+    sort = request.args.get('sort') or 'name_asc'
+
+    # Liste blanche des tris autorisés
+    _allowed_sorts = {
+        'name_asc': 'LOWER(w.name) ASC, w.id DESC',
+        'name_desc': 'LOWER(w.name) DESC, w.id DESC',
+        'rating_desc': 'AVG(r.rating) DESC, w.id DESC',
+        'rating_asc': 'AVG(r.rating) ASC, w.id DESC',
+        'reviews_desc': 'COUNT(r.id) DESC, w.id DESC',
+        'reviews_asc': 'COUNT(r.id) ASC, w.id DESC'
+    }
+    order_clause = _allowed_sorts.get(sort, _allowed_sorts['name_asc'])
+
     try:
-        waifus = fetch_all("""
-            SELECT w.*, 
-                   a.title as anime_title,
-                   v.title as videogame_title,
-                   CASE 
-                       WHEN w.anime_id IS NOT NULL THEN 'anime'
-                       WHEN w.videogame_id IS NOT NULL THEN 'videogame'
-                   END as source_type,
-                   COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
-                   COUNT(r.id) AS review_count
-            FROM waifu w
-            LEFT JOIN anime a ON w.anime_id = a.id
-            LEFT JOIN videogame v ON w.videogame_id = v.id
-            LEFT JOIN waifu_review r ON w.id = r.waifu_id
-            GROUP BY w.id
-            ORDER BY w.name
-        """)
+        if q:
+            pattern = f"%{q}%"
+            waifus = fetch_all(
+                f"""
+                SELECT w.*,
+                       a.title as anime_title,
+                       v.title as videogame_title,
+                       CASE 
+                           WHEN w.anime_id IS NOT NULL THEN 'anime'
+                           WHEN w.videogame_id IS NOT NULL THEN 'videogame'
+                       END as source_type,
+                       COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                       COUNT(r.id) AS review_count
+                FROM waifu w
+                LEFT JOIN anime a ON w.anime_id = a.id
+                LEFT JOIN videogame v ON w.videogame_id = v.id
+                LEFT JOIN waifu_review r ON w.id = r.waifu_id
+                WHERE LOWER(w.name) LIKE %s
+                   OR LOWER(w.description) LIKE %s
+                   OR LOWER(a.title) LIKE %s
+                   OR LOWER(v.title) LIKE %s
+                GROUP BY w.id
+                ORDER BY {order_clause}
+                """,
+                (pattern.lower(), pattern.lower(), pattern.lower(), pattern.lower())
+            )
+        else:
+            waifus = fetch_all(
+                f"""
+                SELECT w.*,
+                       a.title as anime_title,
+                       v.title as videogame_title,
+                       CASE 
+                           WHEN w.anime_id IS NOT NULL THEN 'anime'
+                           WHEN w.videogame_id IS NOT NULL THEN 'videogame'
+                       END as source_type,
+                       COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                       COUNT(r.id) AS review_count
+                FROM waifu w
+                LEFT JOIN anime a ON w.anime_id = a.id
+                LEFT JOIN videogame v ON w.videogame_id = v.id
+                LEFT JOIN waifu_review r ON w.id = r.waifu_id
+                GROUP BY w.id
+                ORDER BY {order_clause}
+                """
+            )
     except Exception as e:
-        # Si erreur de colonne manquante, essayer de mettre à jour la table
+        # Si erreur de colonne manquante (ex: videogame_id) ou table manquante, tenter une mise à jour similaire à l'existant
         msg = str(e).lower()
-        if 'videogame_id' in msg and ('unknown column' in msg or '1054' in msg):
-            flash("Mise à jour de la structure de la base de données en cours...")
+        if ('videogame_id' in msg and ('unknown column' in msg or '1054' in msg)) or ('waifu' in msg and ('doesn' in msg or '1146' in msg)):
+            flash("Mise à jour / création des structures de la base en cours...")
             ensure_tables()
             try:
-                # Réessayer après mise à jour
-                waifus = fetch_all("""
-                    SELECT w.*, 
-                           a.title as anime_title,
-                           v.title as videogame_title,
-                           CASE 
-                               WHEN w.anime_id IS NOT NULL THEN 'anime'
-                               WHEN w.videogame_id IS NOT NULL THEN 'videogame'
-                           END as source_type,
-                           COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
-                           COUNT(r.id) AS review_count
-                    FROM waifu w
-                    LEFT JOIN anime a ON w.anime_id = a.id
-                    LEFT JOIN videogame v ON w.videogame_id = v.id
-                    LEFT JOIN waifu_review r ON w.id = r.waifu_id
-                    GROUP BY w.id
-                    ORDER BY w.name
-                """)
+                if q:
+                    pattern = f"%{q}%"
+                    waifus = fetch_all(
+                        f"""
+                        SELECT w.*,
+                               a.title as anime_title,
+                               v.title as videogame_title,
+                               CASE 
+                                   WHEN w.anime_id IS NOT NULL THEN 'anime'
+                                   WHEN w.videogame_id IS NOT NULL THEN 'videogame'
+                               END as source_type,
+                               COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                               COUNT(r.id) AS review_count
+                        FROM waifu w
+                        LEFT JOIN anime a ON w.anime_id = a.id
+                        LEFT JOIN videogame v ON w.videogame_id = v.id
+                        LEFT JOIN waifu_review r ON w.id = r.waifu_id
+                        WHERE LOWER(w.name) LIKE %s
+                           OR LOWER(w.description) LIKE %s
+                           OR LOWER(a.title) LIKE %s
+                           OR LOWER(v.title) LIKE %s
+                        GROUP BY w.id
+                        ORDER BY {order_clause}
+                        """,
+                        (pattern.lower(), pattern.lower(), pattern.lower(), pattern.lower())
+                    )
+                else:
+                    waifus = fetch_all(
+                        f"""
+                        SELECT w.*,
+                               a.title as anime_title,
+                               v.title as videogame_title,
+                               CASE 
+                                   WHEN w.anime_id IS NOT NULL THEN 'anime'
+                                   WHEN w.videogame_id IS NOT NULL THEN 'videogame'
+                               END as source_type,
+                               COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                               COUNT(r.id) AS review_count
+                        FROM waifu w
+                        LEFT JOIN anime a ON w.anime_id = a.id
+                        LEFT JOIN videogame v ON w.videogame_id = v.id
+                        LEFT JOIN waifu_review r ON w.id = r.waifu_id
+                        GROUP BY w.id
+                        ORDER BY {order_clause}
+                        """
+                    )
             except Exception as e2:
-                flash("Erreur lors de la lecture des waifus. Voir la console pour plus de détails.")
+                flash("Erreur lors de la lecture des waifus après mise à jour : voir la console.")
                 print(f"Erreur après tentative de mise à jour: {e2}")
                 waifus = []
         else:
             flash("Erreur lors de la lecture des waifus.")
             print(f"Erreur waifus_list: {e}")
             waifus = []
-    
-    return render_template('waifus_list.html', waifus=waifus)
+
+    return render_template('waifus_list.html', waifus=waifus, sort=sort)
 
 @app.route('/add_waifu', methods=['GET', 'POST'])
 @login_required

@@ -15,6 +15,49 @@
     </div>
 </div>
 
+{# --- Ajout: formulaire de recherche et de tri (GET) --- #}
+<div class="mb-4">
+    <form method="get" action="" class="row g-2 align-items-center">
+        <div class="col-sm-6">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <input type="search" name="q" class="form-control" placeholder="Rechercher par nom, anime ou description..."
+                       value="{{ request.args.get('q', '') }}">
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="input-group">
+                <span class="input-group-text"><i class="fas fa-sort"></i></span>
+                <select name="sort" class="form-select">
+                    <option value="" {% if not request.args.get('sort') %}selected{% endif %}>Trier par (par défaut)</option>
+                    <option value="name_asc" {% if request.args.get('sort') == 'name_asc' %}selected{% endif %}>Nom ↑</option>
+                    <option value="name_desc" {% if request.args.get('sort') == 'name_desc' %}selected{% endif %}>Nom ↓</option>
+                    <option value="rating_desc" {% if request.args.get('sort') == 'rating_desc' %}selected{% endif %}>Note ↓ (meilleure)</option>
+                    <option value="rating_asc" {% if request.args.get('sort') == 'rating_asc' %}selected{% endif %}>Note ↑ (pire)</option>
+                    <option value="reviews_desc" {% if request.args.get('sort') == 'reviews_desc' %}selected{% endif %}>Nombre d'avis ↓</option>
+                </select>
+            </div>
+        </div>
+        <div class="col-sm-2 d-grid">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Rechercher</button>
+        </div>
+    </form>
+
+    {# Affichage résumé du filtre actif #}
+    {% if request.args.get('q') or request.args.get('sort') %}
+    <div class="mt-2 small text-muted">
+        Filtres actifs:
+        {% if request.args.get('q') %} Recherche "{{ request.args.get('q') }}" {% endif %}
+        {% if request.args.get('sort') %}
+            {% set s = request.args.get('sort') %}
+            • Tri: 
+            {% if s == 'name_asc' %}Nom ↑{% elif s == 'name_desc' %}Nom ↓{% elif s == 'rating_desc' %}Note ↓{% elif s == 'rating_asc' %}Note ↑{% elif s == 'reviews_desc' %}Nombre d'avis ↓{% else %}Par défaut{% endif %}
+        {% endif %}
+        <a href="{{ url_for(request.endpoint) }}" class="ms-2">Réinitialiser</a>
+    </div>
+    {% endif %}
+</div>
+
 {% if waifus %}
     <div class="row">
         {% for waifu in waifus %}
