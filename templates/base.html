@@ -57,10 +57,35 @@
             </button>
             <div class="collapse navbar-collapse" id="navMain">
                 <ul class="navbar-nav ms-auto align-items-center">
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('top10_users') }}">Tops 10</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navDropdown" role="button" data-bs-toggle="dropdown">
+                            Tops
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('top10_users') }}">Top 10 Animes</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('waifu_top5_users') }}">Top 5 Waifus</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('waifus_list') }}">Waifus</a></li>
                     {% if current_user %}
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('add_anime') }}">Ajouter</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('my_top10') }}">Mon Top 10</a></li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navMyTops" role="button" data-bs-toggle="dropdown">
+                                Mes Tops
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('my_top10') }}">Mon Top 10</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('my_waifu_top5') }}">Mon Top 5 Waifu</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navAdd" role="button" data-bs-toggle="dropdown">
+                                Ajouter
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('add_anime') }}">Ajouter Anime</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('add_waifu') }}">Ajouter Waifu</a></li>
+                            </ul>
+                        </li>
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Déconnexion ({{ current_user.username }})</a></li>
                     {% else %}
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Connexion</a></li>

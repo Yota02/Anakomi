@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-trophy text-warning"></i> Top 5 Waifus des utilisateurs</h1>
+    {% if current_user %}
+        <a href="{{ url_for('my_waifu_top5') }}" class="btn btn-brand">Mon top 5 waifu</a>
+    {% endif %}
+</div>
+
+{% if users %}
+    <div class="row">
+        {% for user in users %}
+        <div class="col-md-4 mb-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-user"></i> {{ user.username }}
+                    </h5>
+                    <p class="card-text text-muted">
+                        <i class="fas fa-heart text-danger"></i>
+                        {{ user.waifu_count }} waifu{{ 's' if user.waifu_count > 1 else '' }} dans le top 5
+                    </p>
+                    <a href="{{ url_for('view_user_waifu_top5', user_id=user.id) }}" class="btn btn-primary">
+                        <i class="fas fa-eye"></i> Voir le top 5
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-5">
+        <h3>Aucun top 5 waifu public pour le moment</h3>
+        {% if current_user %}
+            <p class="text-muted">Soyez le premier à créer votre top 5 waifu !</p>
+            <a href="{{ url_for('my_waifu_top5') }}" class="btn btn-brand mt-3">
+                <i class="fas fa-heart"></i> Créer mon top 5 waifu
+            </a>
+        {% endif %}
+    </div>
+{% endif %}
+
+<div class="mt-4 text-center">
+    <a href="{{ url_for('waifus_list') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-heart"></i> Voir toutes les waifus
+    </a>
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-heart text-danger"></i> Liste des Waifus</h1>
+    <div>
+        {% if current_user %}
+            <a href="{{ url_for('add_waifu') }}" class="btn btn-brand me-2">
+                <i class="fas fa-plus"></i> Ajouter Waifu
+            </a>
+        {% endif %}
+        <a href="{{ url_for('waifu_top5_users') }}" class="btn btn-outline-primary">
+            <i class="fas fa-trophy"></i> Top 5 Waifus
+        </a>
+    </div>
+</div>
+
+{% if waifus %}
+    <div class="row">
+        {% for waifu in waifus %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                {% if waifu.image_url %}
+                <img src="{{ waifu.image_url }}" class="card-img-top" alt="{{ waifu.name }}" 
+                     style="height: 250px; object-fit: cover;">
+                {% else %}
+                <div class="card-img-top d-flex align-items-center justify-content-center bg-light" 
+                     style="height: 250px;">
+                    <i class="fas fa-heart fa-3x text-muted"></i>
+                </div>
+                {% endif %}
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">{{ waifu.name }}</h5>
+                    <p class="text-muted mb-2">
+                        <i class="fas fa-tv"></i> {{ waifu.anime_title }}
+                    </p>
+                    <p class="card-text text-muted" style="flex:1;">
+                        {{ (waifu.description[:100] ~ '...') if waifu.description and waifu.description|length > 100 else (waifu.description or '') }}
+                    </p>
+                    <div class="mt-auto">
+                        <a href="{{ url_for('waifu_detail', id=waifu.id) }}" class="btn btn-primary">
+                            <i class="fas fa-eye"></i> Voir détails
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-5">
+        <h3>Aucune waifu pour le moment</h3>
+        {% if current_user %}
+            <p class="text-muted">Soyez le premier à ajouter une waifu !</p>
+            <a href="{{ url_for('add_waifu') }}" class="btn btn-brand mt-3">
+                <i class="fas fa-plus"></i> Ajouter la première waifu
+            </a>
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}

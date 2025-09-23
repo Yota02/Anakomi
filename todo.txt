@@ -1,7 +1,7 @@
 1 - Faire un system de rest de mdp ✓
 2 - Rajouter des filtre et trie (ordre, année, etc...)
 3 - faire le top 10 ✓
-4 - faire le top waifu
+4 - faire le top waifu ✓
 5 - faire sur les films
 6 - faire sur les séries
 7 - faire sur les mangas

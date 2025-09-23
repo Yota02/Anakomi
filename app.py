@@ -133,6 +133,29 @@ def ensure_tables():
         FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     """
+    waifu_sql = """
+    CREATE TABLE IF NOT EXISTS waifu (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        anime_id INT NOT NULL,
+        description TEXT,
+        image_url VARCHAR(500),
+        added_by INT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
+    user_waifu_top5_sql = """
+    CREATE TABLE IF NOT EXISTS user_waifu_top5 (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        waifu_id INT NOT NULL,
+        rank_position INT NOT NULL,
+        is_public TINYINT(1) DEFAULT 0,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        FOREIGN KEY (waifu_id) REFERENCES waifu(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
     try:
         with get_connection() as conn:
             with conn.cursor() as cursor:
@@ -140,6 +163,8 @@ def ensure_tables():
                 cursor.execute(review_sql)
                 cursor.execute(user_sql)
                 cursor.execute(user_top10_sql)
+                cursor.execute(waifu_sql)
+                cursor.execute(user_waifu_top5_sql)
             conn.commit()
     except Exception as e:
         # Ne pas planter l'application : on loggue pour l'admin et on continue.
@@ -605,6 +630,165 @@ def update_top10():
     
     flash("Votre top 10 a été mis à jour avec succès")
     return redirect(url_for('my_top10'))
+
+@app.route('/waifus')
+def waifus_list():
+    """Liste de toutes les waifus"""
+    waifus = fetch_all("""
+        SELECT w.*, a.title as anime_title
+        FROM waifu w
+        JOIN anime a ON w.anime_id = a.id
+        ORDER BY w.name
+    """)
+    
+    return render_template('waifus_list.html', waifus=waifus)
+
+@app.route('/add_waifu', methods=['GET', 'POST'])
+@login_required
+def add_waifu():
+    """Ajouter une nouvelle waifu"""
+    if request.method == 'POST':
+        name = request.form['name']
+        anime_id = request.form['anime_id']
+        description = request.form.get('description', '')
+        image_url = request.form.get('image_url', '')
+        
+        execute_query(
+            "INSERT INTO waifu (name, anime_id, description, image_url, added_by) VALUES (%s, %s, %s, %s, %s)",
+            (name, anime_id, description, image_url, session['user_id'])
+        )
+        
+        flash('Waifu ajoutée avec succès')
+        return redirect(url_for('waifus_list'))
+    
+    # Récupérer tous les animes pour la sélection
+    animes = fetch_all("SELECT id, title FROM anime ORDER BY title")
+    return render_template('add_waifu.html', animes=animes)
+
+@app.route('/waifu/<int:id>')
+def waifu_detail(id):
+    """Détail d'une waifu"""
+    waifu = fetch_one("""
+        SELECT w.*, a.title as anime_title, a.id as anime_id
+        FROM waifu w
+        JOIN anime a ON w.anime_id = a.id
+        WHERE w.id = %s
+    """, (id,))
+    
+    if not waifu:
+        flash('Waifu non trouvée')
+        return redirect(url_for('waifus_list'))
+    
+    return render_template('waifu_detail.html', waifu=waifu)
+
+@app.route('/waifu-top5/users')
+def waifu_top5_users():
+    """Liste des utilisateurs ayant un top 5 waifu public"""
+    info = get_user_table_info()
+    user_tbl = info['table']
+    
+    users_with_top5 = fetch_all(f"""
+        SELECT DISTINCT u.id, u.username, COUNT(t.id) as waifu_count
+        FROM {user_tbl} u
+        JOIN user_waifu_top5 t ON u.id = t.user_id
+        WHERE t.is_public = 1
+        GROUP BY u.id, u.username
+        ORDER BY u.username
+    """)
+    
+    return render_template('waifu_top5_users.html', users=users_with_top5)
+
+@app.route('/waifu-top5/user/<int:user_id>')
+def view_user_waifu_top5(user_id):
+    """Voir le top 5 waifu d'un utilisateur"""
+    info = get_user_table_info()
+    user_tbl = info['table']
+    
+    # Récupérer l'utilisateur
+    user = fetch_one(f"SELECT id, username FROM {user_tbl} WHERE id = %s", (user_id,))
+    if not user:
+        flash("Utilisateur non trouvé")
+        return redirect(url_for('index'))
+    
+    # Vérifier si c'est le propriétaire ou si le top5 est public
+    current_user_obj = get_current_user()
+    is_owner = current_user_obj and current_user_obj.id == user_id
+    
+    if not is_owner:
+        # Vérifier qu'il y a au moins une waifu publique
+        public_check = fetch_one(
+            "SELECT id FROM user_waifu_top5 WHERE user_id = %s AND is_public = 1 LIMIT 1",
+            (user_id,)
+        )
+        if not public_check:
+            flash("Ce top 5 waifu est privé")
+            return redirect(url_for('waifu_top5_users'))
+    
+    # Récupérer le top 5 waifu (public seulement si pas propriétaire)
+    where_clause = "" if is_owner else "AND t.is_public = 1"
+    
+    top5 = fetch_all(f"""
+        SELECT t.rank_position, t.is_public, w.id, w.name, w.image_url, w.description,
+               a.title as anime_title, a.id as anime_id
+        FROM user_waifu_top5 t
+        JOIN waifu w ON t.waifu_id = w.id
+        JOIN anime a ON w.anime_id = a.id
+        WHERE t.user_id = %s {where_clause}
+        ORDER BY t.rank_position
+    """, (user_id,))
+    
+    return render_template('view_waifu_top5.html', user=user, top5=top5, is_owner=is_owner)
+
+@app.route('/my-waifu-top5')
+@login_required
+def my_waifu_top5():
+    """Gérer son propre top 5 waifu"""
+    user_id = session['user_id']
+    
+    # Récupérer le top 5 actuel
+    top5 = fetch_all("""
+        SELECT t.rank_position, t.is_public, w.id, w.name, w.image_url,
+               a.title as anime_title
+        FROM user_waifu_top5 t
+        JOIN waifu w ON t.waifu_id = w.id
+        JOIN anime a ON w.anime_id = a.id
+        WHERE t.user_id = %s
+        ORDER BY t.rank_position
+    """, (user_id,))
+    
+    # Récupérer toutes les waifus pour la sélection
+    all_waifus = fetch_all("""
+        SELECT w.id, w.name, a.title as anime_title
+        FROM waifu w
+        JOIN anime a ON w.anime_id = a.id
+        ORDER BY w.name
+    """)
+    
+    return render_template('manage_waifu_top5.html', top5=top5, all_waifus=all_waifus)
+
+@app.route('/my-waifu-top5/update', methods=['POST'])
+@login_required
+def update_waifu_top5():
+    """Mettre à jour son top 5 waifu"""
+    user_id = session['user_id']
+    
+    # Supprimer l'ancien top 5
+    execute_query("DELETE FROM user_waifu_top5 WHERE user_id = %s", (user_id,))
+    
+    # Récupérer la visibilité globale
+    is_public = 1 if request.form.get('is_public') == 'on' else 0
+    
+    # Ajouter les nouvelles waifus
+    for i in range(1, 6):
+        waifu_id = request.form.get(f'waifu_{i}')
+        if waifu_id and waifu_id.isdigit():
+            execute_query(
+                "INSERT INTO user_waifu_top5 (user_id, waifu_id, rank_position, is_public) VALUES (%s, %s, %s, %s)",
+                (user_id, int(waifu_id), i, is_public)
+            )
+    
+    flash("Votre top 5 waifu a été mis à jour avec succès")
+    return redirect(url_for('my_waifu_top5'))
 
 if __name__ == '__main__':
     # Hôte/port et mode debug contrôlés par des variables d'environnement
