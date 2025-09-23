@@ -194,6 +194,17 @@ def ensure_tables():
         FOREIGN KEY (videogame_id) REFERENCES videogame(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     """
+    waifu_review_sql = """
+    CREATE TABLE IF NOT EXISTS waifu_review (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        rating TINYINT NOT NULL,
+        comment TEXT,
+        user_id INT,
+        waifu_id INT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (waifu_id) REFERENCES waifu(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
     try:
         with get_connection() as conn:
             with conn.cursor() as cursor:
@@ -206,6 +217,7 @@ def ensure_tables():
                 cursor.execute(videogame_sql)
                 cursor.execute(videogame_review_sql)
                 cursor.execute(user_videogame_top10_sql)
+                cursor.execute(waifu_review_sql)
                 
                 # Ajouter la colonne videogame_id si elle n'existe pas
                 try:
@@ -692,10 +704,14 @@ def waifus_list():
                    CASE 
                        WHEN w.anime_id IS NOT NULL THEN 'anime'
                        WHEN w.videogame_id IS NOT NULL THEN 'videogame'
-                   END as source_type
+                   END as source_type,
+                   COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                   COUNT(r.id) AS review_count
             FROM waifu w
             LEFT JOIN anime a ON w.anime_id = a.id
             LEFT JOIN videogame v ON w.videogame_id = v.id
+            LEFT JOIN waifu_review r ON w.id = r.waifu_id
+            GROUP BY w.id
             ORDER BY w.name
         """)
     except Exception as e:
@@ -713,10 +729,14 @@ def waifus_list():
                            CASE 
                                WHEN w.anime_id IS NOT NULL THEN 'anime'
                                WHEN w.videogame_id IS NOT NULL THEN 'videogame'
-                           END as source_type
+                           END as source_type,
+                           COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                           COUNT(r.id) AS review_count
                     FROM waifu w
                     LEFT JOIN anime a ON w.anime_id = a.id
                     LEFT JOIN videogame v ON w.videogame_id = v.id
+                    LEFT JOIN waifu_review r ON w.id = r.waifu_id
+                    GROUP BY w.id
                     ORDER BY w.name
                 """)
             except Exception as e2:
@@ -1019,7 +1039,117 @@ def waifu_detail(id):
         flash('Waifu non trouvée')
         return redirect(url_for('waifus_list'))
     
-    return render_template('waifu_detail.html', waifu=waifu)
+    info = get_user_table_info()
+    user_tbl = info['table']
+    # Récupérer les avis avec les noms d'utilisateur
+    reviews = fetch_all(f"""
+        SELECT r.*, u.username 
+        FROM waifu_review r 
+        JOIN {user_tbl} u ON r.user_id = u.id 
+        WHERE r.waifu_id = %s 
+        ORDER BY r.created_at DESC
+    """, (id,))
+    
+    # Calculer la moyenne des notes
+    avg_rating = 0
+    if reviews:
+        avg_rating = sum(review['rating'] for review in reviews) / len(reviews)
+    
+    return render_template('waifu_detail.html', waifu=waifu, reviews=reviews, avg_rating=round(avg_rating, 1))
+
+@app.route('/add_waifu_review/<int:waifu_id>', methods=['POST'])
+@login_required
+def add_waifu_review(waifu_id):
+    """Ajouter/modifier un avis sur une waifu"""
+    rating = int(request.form['rating'])
+    comment = request.form['comment']
+    
+    # Vérifier si l'utilisateur a déjà noté cette waifu
+    existing_review = fetch_one(
+        "SELECT id FROM waifu_review WHERE user_id = %s AND waifu_id = %s",
+        (session['user_id'], waifu_id)
+    )
+    
+    if existing_review:
+        # Mettre à jour l'avis existant
+        execute_query(
+            "UPDATE waifu_review SET rating = %s, comment = %s, created_at = NOW() WHERE user_id = %s AND waifu_id = %s",
+            (rating, comment, session['user_id'], waifu_id)
+        )
+        flash('Avis modifié avec succès')
+    else:
+        # Créer un nouvel avis
+        execute_query(
+            "INSERT INTO waifu_review (rating, comment, user_id, waifu_id) VALUES (%s, %s, %s, %s)",
+            (rating, comment, session['user_id'], waifu_id)
+        )
+        flash('Avis ajouté avec succès')
+    
+    return redirect(url_for('waifu_detail', id=waifu_id))
+
+@app.route('/my-waifu-top5')
+@login_required
+def my_waifu_top5():
+    """Gérer son propre top 5 waifu"""
+    user_id = session['user_id']
+    
+    # Récupérer le top 5 actuel
+    top5 = fetch_all("""
+        SELECT t.rank_position, t.is_public, w.id, w.name, w.image_url, w.description,
+               a.title as anime_title, a.id as anime_id,
+               v.title as videogame_title, v.id as videogame_id,
+               CASE 
+                   WHEN w.anime_id IS NOT NULL THEN 'anime'
+                   WHEN w.videogame_id IS NOT NULL THEN 'videogame'
+               END as source_type
+        FROM user_waifu_top5 t
+        JOIN waifu w ON t.waifu_id = w.id
+        LEFT JOIN anime a ON w.anime_id = a.id
+        LEFT JOIN videogame v ON w.videogame_id = v.id
+        WHERE t.user_id = %s
+        ORDER BY t.rank_position
+    """, (user_id,))
+    
+    # Récupérer toutes les waifus pour la sélection
+    all_waifus = fetch_all("""
+        SELECT w.id, w.name, 
+               a.title as anime_title,
+               v.title as videogame_title,
+               CASE 
+                   WHEN w.anime_id IS NOT NULL THEN a.title
+                   WHEN w.videogame_id IS NOT NULL THEN v.title
+               END as source_title
+        FROM waifu w
+        LEFT JOIN anime a ON w.anime_id = a.id
+        LEFT JOIN videogame v ON w.videogame_id = v.id
+        ORDER BY w.name
+    """)
+    
+    return render_template('manage_waifu_top5.html', top5=top5, all_waifus=all_waifus)
+
+@app.route('/my-waifu-top5/update', methods=['POST'])
+@login_required
+def update_waifu_top5():
+    """Mettre à jour son top 5 waifu"""
+    user_id = session['user_id']
+    
+    # Supprimer l'ancien top 5
+    execute_query("DELETE FROM user_waifu_top5 WHERE user_id = %s", (user_id,))
+    
+    # Récupérer la visibilité globale
+    is_public = 1 if request.form.get('is_public') == 'on' else 0
+    
+    # Ajouter les nouvelles waifus
+    for i in range(1, 6):
+        waifu_id = request.form.get(f'waifu_{i}')
+        if waifu_id and waifu_id.isdigit():
+            execute_query(
+                "INSERT INTO user_waifu_top5 (user_id, waifu_id, rank_position, is_public) VALUES (%s, %s, %s, %s)",
+                (user_id, int(waifu_id), i, is_public)
+            )
+    
+    flash("Votre top 5 waifu a été mis à jour avec succès")
+    return redirect(url_for('my_waifu_top5'))
 
 @app.route('/waifu-top5/users')
 def waifu_top5_users():
@@ -1074,80 +1204,19 @@ def view_user_waifu_top5(user_id):
                CASE 
                    WHEN w.anime_id IS NOT NULL THEN 'anime'
                    WHEN w.videogame_id IS NOT NULL THEN 'videogame'
-               END as source_type
+               END as source_type,
+               COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating
         FROM user_waifu_top5 t
         JOIN waifu w ON t.waifu_id = w.id
         LEFT JOIN anime a ON w.anime_id = a.id
         LEFT JOIN videogame v ON w.videogame_id = v.id
+        LEFT JOIN waifu_review r ON w.id = r.waifu_id
         WHERE t.user_id = %s {where_clause}
+        GROUP BY t.rank_position, t.is_public, w.id, w.name, w.image_url, w.description, a.title, a.id, v.title, v.id
         ORDER BY t.rank_position
     """, (user_id,))
     
     return render_template('view_waifu_top5.html', user=user, top5=top5, is_owner=is_owner)
-
-@app.route('/my-waifu-top5')
-@login_required
-def my_waifu_top5():
-    """Gérer son propre top 5 waifu"""
-    user_id = session['user_id']
-    
-    # Récupérer le top 5 actuel
-    top5 = fetch_all("""
-        SELECT t.rank_position, t.is_public, w.id, w.name, w.image_url,
-               a.title as anime_title,
-               v.title as videogame_title,
-               CASE 
-                   WHEN w.anime_id IS NOT NULL THEN 'anime'
-                   WHEN w.videogame_id IS NOT NULL THEN 'videogame'
-               END as source_title
-        FROM user_waifu_top5 t
-        JOIN waifu w ON t.waifu_id = w.id
-        LEFT JOIN anime a ON w.anime_id = a.id
-        LEFT JOIN videogame v ON w.videogame_id = v.id
-        WHERE t.user_id = %s
-        ORDER BY t.rank_position
-    """, (user_id,))
-    
-    # Récupérer toutes les waifus pour la sélection
-    all_waifus = fetch_all("""
-        SELECT w.id, w.name, 
-               a.title as anime_title,
-               v.title as videogame_title,
-               CASE 
-                   WHEN w.anime_id IS NOT NULL THEN a.title
-                   WHEN w.videogame_id IS NOT NULL THEN v.title
-               END as source_title
-        FROM waifu w
-        LEFT JOIN anime a ON w.anime_id = a.id
-        LEFT JOIN videogame v ON w.videogame_id = v.id
-        ORDER BY w.name
-    """)
-    
-    return render_template('manage_waifu_top5.html', top5=top5, all_waifus=all_waifus)
-
-@app.route('/my-waifu-top5/update', methods=['POST'])
-@login_required
-def update_waifu_top5():
-    """Mettre à jour son top 5 waifu"""
-    user_id = session['user_id']
-    
-    # Supprimer l'ancien top 5
-    execute_query("DELETE FROM user_waifu_top5 WHERE user_id = %s", (user_id,))
-    
-    # Récupérer la visibilité globale
-    is_public = 1 if request.form.get('is_public') == 'on' else 0
-    
-    # Ajouter les nouvelles waifus
-    for i in range(1, 6):
-        waifu_id = request.form.get(f'waifu_{i}')
-        if waifu_id and waifu_id.isdigit():
-            execute_query(
-                "INSERT INTO user_waifu_top5 (user_id, waifu_id, rank_position, is_public) VALUES (%s, %s, %s, %s)",
-                (user_id, int(waifu_id), i, is_public)
-            )
-    
-    flash("Votre top 5 waifu a été mis à jour avec succès")
-    return redirect(url_for('my_waifu_top5'))
 
 if __name__ == '__main__':
     # Hôte/port et mode debug contrôlés par des variables d'environnement

@@ -56,6 +56,20 @@
                                 <small>{{ (item.description[:80] ~ '...') if item.description|length > 80 else item.description }}</small>
                             </p>
                             {% endif %}
+                            {% if item.avg_rating and item.avg_rating > 0 %}
+                            <div class="mb-2">
+                                <small class="text-warning">
+                                    {% for i in range(1, 6) %}
+                                        {% if i <= item.avg_rating %}
+                                            <i class="fas fa-star"></i>
+                                        {% else %}
+                                            <i class="far fa-star"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                    {{ item.avg_rating }}/5
+                                </small>
+                            </div>
+                            {% endif %}
                             <div class="d-flex justify-content-between align-items-center">
                                 <a href="{{ url_for('waifu_detail', id=item.id) }}" class="btn btn-sm btn-primary">
                                     Voir détails

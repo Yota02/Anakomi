@@ -302,6 +302,18 @@ def ensure_tables():
         UNIQUE KEY unique_user_waifu (user_id, waifu_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     """
+    waifu_review_sql = """
+    CREATE TABLE IF NOT EXISTS waifu_review (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        waifu_id INT,
+        user_id INT,
+        rating INT CHECK (rating >= 1 AND rating <= 5),
+        comment TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (waifu_id) REFERENCES waifu(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
     try:
         with get_connection() as conn:
             with conn.cursor() as cursor:
@@ -314,6 +326,7 @@ def ensure_tables():
                 cursor.execute(videogame_top10_sql)
                 cursor.execute(waifu_sql)
                 cursor.execute(waifu_top5_sql)
+                cursor.execute(waifu_review_sql)
                 
                 # Ajouter la colonne videogame_id si elle n'existe pas
                 try:

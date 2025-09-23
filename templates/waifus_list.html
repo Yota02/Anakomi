@@ -38,6 +38,20 @@
                             <i class="fas fa-gamepad"></i> {{ waifu.videogame_title }}
                         {% endif %}
                     </p>
+                    {% if waifu.avg_rating and waifu.avg_rating > 0 %}
+                    <div class="mb-2">
+                        <small class="text-muted">
+                            {% for i in range(1, 6) %}
+                                {% if i <= waifu.avg_rating %}
+                                    <i class="fas fa-star text-warning"></i>
+                                {% else %}
+                                    <i class="far fa-star text-warning"></i>
+                                {% endif %}
+                            {% endfor %}
+                            {{ waifu.avg_rating }}/5 ({{ waifu.review_count }} avis)
+                        </small>
+                    </div>
+                    {% endif %}
                     <p class="card-text text-muted" style="flex:1;">
                         {{ (waifu.description[:100] ~ '...') if waifu.description and waifu.description|length > 100 else (waifu.description or '') }}
                     </p>

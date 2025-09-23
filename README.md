@@ -88,6 +88,14 @@ Modifiez ces paramètres dans `app.py` selon votre configuration MySQL.
 - image_url (VARCHAR(500))
 - added_by (INT, FOREIGN KEY → user.id)
 
+### Table `waifu_review`
+- id (INT, PRIMARY KEY)
+- rating (INT, 1-5)
+- comment (TEXT)
+- user_id (INT, FOREIGN KEY → user.id)
+- waifu_id (INT, FOREIGN KEY → waifu.id)
+- created_at (DATETIME)
+
 ### Table `videogame`
 - id (INT, PRIMARY KEY)
 - title (VARCHAR(255))
