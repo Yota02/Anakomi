@@ -537,7 +537,6 @@ def edit_anime(id):
     
     return render_template('edit_anime.html', anime=anime)
 
-# Route: demande de réinitialisation
 @app.route('/reset_password_request', methods=['GET', 'POST'])
 def reset_password_request():
     if request.method == 'POST':
@@ -1288,6 +1287,32 @@ def view_user_waifu_top5(user_id):
     """, (user_id,))
     
     return render_template('view_waifu_top5.html', user=user, top5=top5, is_owner=is_owner)
+
+@app.route('/edit_videogame/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_videogame(id):
+    videogame = fetch_one("SELECT * FROM videogame WHERE id = %s", (id,))
+    if not videogame:
+        flash('Jeu vidéo non trouvé')
+        return redirect(url_for('videogames_list'))
+    
+    if request.method == 'POST':
+        title = request.form['title']
+        description = request.form['description']
+        genre = request.form['genre']
+        year = request.form['year']
+        platform = request.form['platform']
+        cover_url = request.form.get('cover_url', '')
+        
+        execute_query(
+            "UPDATE videogame SET title = %s, description = %s, genre = %s, year = %s, platform = %s, cover_url = %s WHERE id = %s",
+            (title, description, genre, int(year), platform, cover_url, id)
+        )
+        
+        flash('Jeu vidéo modifié avec succès')
+        return redirect(url_for('videogame_detail', id=id))
+    
+    return render_template('edit_videogame.html', videogame=videogame)
 
 if __name__ == '__main__':
     # Hôte/port et mode debug contrôlés par des variables d'environnement
