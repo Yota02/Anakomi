@@ -21,6 +21,11 @@
                     <i class="fas fa-calendar"></i> {{ videogame.year or 'Année inconnue' }}
                 </p>
             </div>
+            {% if current_user %}
+                <a href="{{ url_for('edit_videogame', id=videogame.id) }}" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-edit"></i> Modifier
+                </a>
+            {% endif %}
         </div>
 
         {% if videogame.description %}
