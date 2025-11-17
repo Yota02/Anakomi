@@ -64,11 +64,11 @@
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ url_for('top10_users') }}">Top 10 Animes</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('videogame_top10_users') }}">Top 10 Jeux Vidéo</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('waifu_top5_users') }}">Top 5 Waifus</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('waifu_top5_users') }}">Top 5 Personnages</a></li>
                         </ul>
                     </li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('videogames_list') }}">Jeux Vidéo</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('waifus_list') }}">Waifus</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('waifus_list') }}">Personnages</a></li>
                     {% if current_user %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navMyTops" role="button" data-bs-toggle="dropdown">
@@ -77,7 +77,7 @@
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('my_top10') }}">Mon Top 10</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('my_videogame_top10') }}">Mon Top 10 Jeux Vidéo</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('my_waifu_top5') }}">Mon Top 5 Waifu</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('my_waifu_top5') }}">Mon Top 5 Personnage</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -87,7 +87,7 @@
                             <ul class="dropdown-menu">
                                 <li><a class="dropdown-item" href="{{ url_for('add_anime') }}">Ajouter Anime</a></li>
                                 <li><a class="dropdown-item" href="{{ url_for('add_videogame') }}">Ajouter Jeu Vidéo</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('add_waifu') }}">Ajouter Waifu</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('add_waifu') }}">Ajouter Personnage</a></li>
                             </ul>
                         </li>
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Déconnexion ({{ current_user.username }})</a></li>

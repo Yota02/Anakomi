@@ -2,15 +2,15 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="fas fa-heart text-danger"></i> Liste des Waifus</h1>
+    <h1><i class="fas fa-heart text-danger"></i> Liste des Personnages</h1>
     <div>
         {% if current_user %}
             <a href="{{ url_for('add_waifu') }}" class="btn btn-brand me-2">
-                <i class="fas fa-plus"></i> Ajouter Waifu
+                <i class="fas fa-plus"></i> Ajouter Personnage
             </a>
         {% endif %}
         <a href="{{ url_for('waifu_top5_users') }}" class="btn btn-outline-primary">
-            <i class="fas fa-trophy"></i> Top 5 Waifus
+            <i class="fas fa-trophy"></i> Top 5 Personnages
         </a>
     </div>
 </div>
@@ -110,11 +110,11 @@
     </div>
 {% else %}
     <div class="text-center py-5">
-        <h3>Aucune waifu pour le moment</h3>
+        <h3>Aucun personnage pour le moment</h3>
         {% if current_user %}
-            <p class="text-muted">Soyez le premier à ajouter une waifu !</p>
+            <p class="text-muted">Soyez le premier à ajouter un personnage !</p>
             <a href="{{ url_for('add_waifu') }}" class="btn btn-brand mt-3">
-                <i class="fas fa-plus"></i> Ajouter la première waifu
+                <i class="fas fa-plus"></i> Ajouter le premier personnage
             </a>
         {% endif %}
     </div>

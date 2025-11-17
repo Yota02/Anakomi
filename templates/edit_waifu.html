@@ -4,56 +4,56 @@
 <div class="row justify-content-center">
     <div class="col-md-8">
         <div class="card p-4">
-            <h2><i class="fas fa-heart text-danger"></i> Ajouter un Personnage</h2>
+            <h2><i class="fas fa-heart text-danger"></i> Modifier le Personnage</h2>
             <form method="POST">
                 <div class="mb-3">
                     <label for="name" class="form-label">Nom du personnage</label>
-                    <input type="text" class="form-control" id="name" name="name" required>
+                    <input type="text" class="form-control" id="name" name="name" value="{{ waifu.name }}" required>
                 </div>
                 <div class="mb-3">
                     <label for="source_type" class="form-label">Type de source</label>
                     <select class="form-select" id="source_type" name="source_type" required onchange="toggleSourceOptions()">
                         <option value="">-- Choisir le type --</option>
-                        <option value="anime">Anime</option>
-                        <option value="videogame">Jeu Vidéo</option>
+                        <option value="anime" {% if waifu.anime_id %}selected{% endif %}>Anime</option>
+                        <option value="videogame" {% if waifu.videogame_id %}selected{% endif %}>Jeu Vidéo</option>
                     </select>
                 </div>
-                <div class="mb-3" id="anime_select" style="display: none;">
+                <div class="mb-3" id="anime_select" style="display: {{ 'block' if waifu.anime_id else 'none' }}">
                     <label for="anime_id" class="form-label">Anime d'origine</label>
                     <select class="form-select" id="anime_id" name="source_id">
                         <option value="">-- Choisir un anime --</option>
                         {% for anime in animes %}
-                        <option value="{{ anime.id }}">{{ anime.title }}</option>
+                        <option value="{{ anime.id }}" {% if waifu.anime_id == anime.id %}selected{% endif %}>{{ anime.title }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="mb-3" id="videogame_select" style="display: none;">
+                <div class="mb-3" id="videogame_select" style="display: {{ 'block' if waifu.videogame_id else 'none' }}">
                     <label for="videogame_id" class="form-label">Jeu vidéo d'origine</label>
                     <select class="form-select" id="videogame_id" name="source_id">
                         <option value="">-- Choisir un jeu vidéo --</option>
                         {% for videogame in videogames %}
-                        <option value="{{ videogame.id }}">{{ videogame.title }}</option>
+                        <option value="{{ videogame.id }}" {% if waifu.videogame_id == videogame.id %}selected{% endif %}>{{ videogame.title }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="mb-3">
                     <label for="description" class="form-label">Description</label>
-                    <textarea class="form-control" id="description" name="description" rows="4" 
-                              placeholder="Décrivez brièvement ce personnage..."></textarea>
+                    <textarea class="form-control" id="description" name="description" rows="4">{{ waifu.description }}</textarea>
                 </div>
                 <div class="mb-3">
                     <label for="image_url" class="form-label">URL de l'image</label>
-                    <input type="url" class="form-control" id="image_url" name="image_url" 
-                           placeholder="https://exemple.com/image.jpg">
+                    <input type="url" class="form-control" id="image_url" name="image_url" value="{{ waifu.image_url }}" placeholder="https://exemple.com/image.jpg">
                     <div class="form-text">Optionnel : URL d'une image du personnage</div>
+                    {% if waifu.image_url %}
+                    <div class="mt-2">
+                        <small class="text-muted">Aperçu actuel :</small><br>
+                        <img src="{{ waifu.image_url }}" alt="{{ waifu.name }}" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
+                    </div>
+                    {% endif %}
                 </div>
                 <div class="d-flex gap-2">
-                    <button type="submit" class="btn btn-brand">
-                        <i class="fas fa-save"></i> Ajouter le personnage
-                    </button>
-                    <a href="{{ url_for('waifus_list') }}" class="btn btn-outline-secondary">
-                        <i class="fas fa-arrow-left"></i> Retour
-                    </a>
+                    <button type="submit" class="btn btn-brand">Sauvegarder</button>
+                    <a href="{{ url_for('waifu_detail', id=waifu.id) }}" class="btn btn-outline-secondary">Annuler</a>
                 </div>
             </form>
         </div>

@@ -79,7 +79,7 @@ Modifiez ces paramètres dans `app.py` selon votre configuration MySQL.
 - user_id (INT, FOREIGN KEY → user.id)
 - anime_id (INT, FOREIGN KEY → anime.id)
 
-### Table `waifu`
+### Table `waifu` (maintenant appelée "personnage" dans l'UI)
 - id (INT, PRIMARY KEY)
 - name (VARCHAR(255))
 - anime_id (INT, FOREIGN KEY → anime.id, NULL si videogame)
@@ -88,7 +88,7 @@ Modifiez ces paramètres dans `app.py` selon votre configuration MySQL.
 - image_url (VARCHAR(500))
 - added_by (INT, FOREIGN KEY → user.id)
 
-### Table `waifu_review`
+### Table `waifu_review` (avis sur personnages)
 - id (INT, PRIMARY KEY)
 - rating (INT, 1-5)
 - comment (TEXT)
@@ -114,7 +114,7 @@ Modifiez ces paramètres dans `app.py` selon votre configuration MySQL.
 - videogame_id (INT, FOREIGN KEY → videogame.id)
 - created_at (DATETIME)
 
-### Table `user_waifu_top5`
+### Table `user_waifu_top5` (top 5 personnages)
 - id (INT, PRIMARY KEY)
 - user_id (INT, FOREIGN KEY → user.id)
 - waifu_id (INT, FOREIGN KEY → waifu.id)

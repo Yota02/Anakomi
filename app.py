@@ -1314,6 +1314,47 @@ def edit_videogame(id):
     
     return render_template('edit_videogame.html', videogame=videogame)
 
+@app.route('/edit_waifu/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_waifu(id):
+    waifu = fetch_one("SELECT * FROM waifu WHERE id = %s", (id,))
+    if not waifu:
+        flash('Personnage non trouvé')
+        return redirect(url_for('waifus_list'))
+    
+    if request.method == 'POST':
+        name = request.form['name']
+        source_type = request.form['source_type']
+        source_id = request.form['source_id']
+        description = request.form.get('description', '')
+        image_url = request.form.get('image_url', '')
+        
+        # Convertir correctement les IDs selon le type de source
+        if source_type == 'anime' and source_id:
+            anime_id = int(source_id)
+            videogame_id = None
+        elif source_type == 'videogame' and source_id:
+            anime_id = None
+            videogame_id = int(source_id)
+        else:
+            flash('Veuillez sélectionner une source valide pour le personnage')
+            animes = fetch_all("SELECT id, title FROM anime ORDER BY title")
+            videogames = fetch_all("SELECT id, title FROM videogame ORDER BY title")
+            return render_template('edit_waifu.html', waifu=waifu, animes=animes, videogames=videogames)
+        
+        execute_query(
+            "UPDATE waifu SET name = %s, anime_id = %s, videogame_id = %s, description = %s, image_url = %s WHERE id = %s",
+            (name, anime_id, videogame_id, description, image_url, id)
+        )
+        
+        flash('Personnage modifié avec succès')
+        return redirect(url_for('waifu_detail', id=id))
+    
+    # Récupérer tous les animes et jeux vidéo pour la sélection
+    animes = fetch_all("SELECT id, title FROM anime ORDER BY title")
+    videogames = fetch_all("SELECT id, title FROM videogame ORDER BY title")
+    return render_template('edit_waifu.html', waifu=waifu, animes=animes, videogames=videogames)
+
 if __name__ == '__main__':
     # Hôte/port et mode debug contrôlés par des variables d'environnement
     host = os.getenv('HOST', '0.0.0.0')
