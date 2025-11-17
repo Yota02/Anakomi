@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card p-4">
+            <h2 class="mb-3">Contactez-nous</h2>
+            <p class="text-muted">Envoyez-nous un message. Nous vous répondrons dès que possible.</p>
+            <form action="https://formspree.io/f/manazryb" method="POST">
+                <div class="mb-3">
+                    <label for="type" class="form-label">Type de message</label>
+                    <select class="form-select" id="type" name="type" required>
+                        <option value="">-- Choisissez un type --</option>
+                        <option value="bug">Bug (rapport d'erreur)</option>
+                        <option value="recommandation">Recommandation</option>
+                        <option value="idee">Idée (suggestion)</option>
+                        <option value="autre">Autre</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">Votre email</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                        <input type="email" class="form-control" id="email" name="email" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="message" class="form-label">Votre message</label>
+                    <textarea class="form-control" id="message" name="message" rows="5" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-brand w-100">Envoyer</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

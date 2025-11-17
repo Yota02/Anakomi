@@ -1355,6 +1355,10 @@ def edit_waifu(id):
     videogames = fetch_all("SELECT id, title FROM videogame ORDER BY title")
     return render_template('edit_waifu.html', waifu=waifu, animes=animes, videogames=videogames)
 
+@app.route('/contact')
+def contact():
+    return render_template('contact.html')
+
 if __name__ == '__main__':
     # Hôte/port et mode debug contrôlés par des variables d'environnement
     host = os.getenv('HOST', '0.0.0.0')
