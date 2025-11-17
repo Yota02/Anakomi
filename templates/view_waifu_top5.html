@@ -4,9 +4,9 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>
         <i class="fas fa-heart text-danger"></i> 
-        Top 5 Personnages de {{ user.username }}
+        Top 10 Personnages de {{ user.username }}
         {% if is_owner %}
-            <span class="badge bg-secondary">Votre top 5</span>
+            <span class="badge bg-secondary">Votre top 10</span>
         {% endif %}
     </h1>
     {% if is_owner %}
@@ -90,17 +90,17 @@
     </div>
 {% else %}
     <div class="text-center py-5">
-        <h3>Aucune personnage dans ce top 5</h3>
+        <h3>Aucune personnage dans ce top 10</h3>
         {% if is_owner %}
             <p class="text-muted">Ajoutez vos personnages favorites !</p>
-            <a href="{{ url_for('my_waifu_top5') }}" class="btn btn-danger mt-3">Créer mon top 5 personnage</a>
+            <a href="{{ url_for('my_waifu_top5') }}" class="btn btn-danger mt-3">Créer mon top 10 personnage</a>
         {% endif %}
     </div>
 {% endif %}
 
 <div class="mt-4 text-center">
     <a href="{{ url_for('waifu_top5_users') }}" class="btn btn-outline-secondary">
-        <i class="fas fa-arrow-left"></i> Retour aux tops 5 personnages
+        <i class="fas fa-arrow-left"></i> Retour aux tops 10 personnages
     </a>
 </div>
 {% endblock %}

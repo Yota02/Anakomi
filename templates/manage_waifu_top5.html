@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="fas fa-heart text-danger"></i> Mon Top 5 Waifu</h1>
+    <h1><i class="fas fa-heart text-danger"></i> Mon Top 10 Waifu</h1>
     <a href="{{ url_for('view_user_waifu_top5', user_id=current_user.id) }}" class="btn btn-outline-primary">
         <i class="fas fa-eye"></i> Aperçu
     </a>
@@ -15,9 +15,9 @@
                 <input class="form-check-input" type="checkbox" id="is_public" name="is_public" 
                        {% if top5 and top5[0].is_public %}checked{% endif %}>
                 <label class="form-check-label" for="is_public">
-                    <strong>Rendre mon top 5 waifu public</strong>
+                    <strong>Rendre mon top 10 waifu public</strong>
                     <small class="d-block text-muted">
-                        Si activé, les autres utilisateurs pourront voir votre top 5 waifu
+                        Si activé, les autres utilisateurs pourront voir votre top 10 waifu
                     </small>
                 </label>
             </div>
@@ -25,7 +25,7 @@
     </div>
 
     <div class="row">
-        {% for i in range(1, 6) %}
+        {% for i in range(1, 11) %}
         <div class="col-md-6 mb-3">
             <div class="card">
                 <div class="card-body">
@@ -52,7 +52,7 @@
 
     <div class="text-center mt-4">
         <button type="submit" class="btn btn-danger btn-lg">
-            <i class="fas fa-save"></i> Sauvegarder mon top 5 waifu
+            <i class="fas fa-save"></i> Sauvegarder mon top 10 waifu
         </button>
     </div>
 </form>

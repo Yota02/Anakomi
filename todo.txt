@@ -9,3 +9,4 @@
 9 - faire sur les jeux vidéos ✓
 10 - faire un système de recommandation
 11 - Corriger la structure de la table waifu pour supporter les jeux vidéo ✓
+12 - Passer le top personnages de 5 à 10 ✓

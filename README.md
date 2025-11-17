@@ -114,11 +114,11 @@ Modifiez ces paramètres dans `app.py` selon votre configuration MySQL.
 - videogame_id (INT, FOREIGN KEY → videogame.id)
 - created_at (DATETIME)
 
-### Table `user_waifu_top5` (top 5 personnages)
+### Table `user_waifu_top5` (top 10 personnages)
 - id (INT, PRIMARY KEY)
 - user_id (INT, FOREIGN KEY → user.id)
 - waifu_id (INT, FOREIGN KEY → waifu.id)
-- rank_position (INT, 1-5)
+- rank_position (INT, 1-10)
 - is_public (BOOLEAN)
 
 ### Table `user_videogame_top10`

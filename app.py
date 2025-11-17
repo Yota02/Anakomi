@@ -1210,7 +1210,7 @@ def update_waifu_top5():
     is_public = 1 if request.form.get('is_public') == 'on' else 0
     
     # Ajouter les nouvelles waifus
-    for i in range(1, 6):
+    for i in range(1, 11):
         waifu_id = request.form.get(f'waifu_{i}')
         if waifu_id and waifu_id.isdigit():
             execute_query(
@@ -1218,7 +1218,7 @@ def update_waifu_top5():
                 (user_id, int(waifu_id), i, is_public)
             )
     
-    flash("Votre top 5 waifu a été mis à jour avec succès")
+    flash("Votre top 10 waifu a été mis à jour avec succès")
     return redirect(url_for('my_waifu_top5'))
 
 @app.route('/waifu-top5/users')
@@ -1261,7 +1261,7 @@ def view_user_waifu_top5(user_id):
             (user_id,)
         )
         if not public_check:
-            flash("Ce top 5 waifu est privé")
+            flash("Ce top 10 waifu est privé")
             return redirect(url_for('waifu_top5_users'))
     
     # Récupérer le top 5 waifu (public seulement si pas propriétaire)
