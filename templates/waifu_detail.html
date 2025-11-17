@@ -23,6 +23,7 @@
                         <i class="fas fa-gamepad"></i> Jeu vidéo : 
                         <a href="{{ url_for('videogame_detail', id=waifu.videogame_id) }}">{{ waifu.videogame_title }}</a>
                     {% endif %}
+                    · <i class="fas fa-{% if waifu.gender == 'girl' %}venus{% else %}mars{% endif %}"></i> {{ 'Fille' if waifu.gender == 'girl' else 'Garçon' }}
                 </p>
             </div>
             {% if current_user %}

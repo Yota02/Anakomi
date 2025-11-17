@@ -280,6 +280,7 @@ def ensure_tables():
         description TEXT,
         image_url VARCHAR(500),
         added_by INT,
+        gender VARCHAR(10),  # Nouveau : sexe ('girl' ou 'boy')
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE,
         FOREIGN KEY (videogame_id) REFERENCES videogame(id) ON DELETE CASCADE,
@@ -328,13 +329,10 @@ def ensure_tables():
                 cursor.execute(waifu_top5_sql)
                 cursor.execute(waifu_review_sql)
                 
-                # Ajouter la colonne videogame_id si elle n'existe pas
-                try:
-                    cursor.execute("ALTER TABLE waifu ADD COLUMN videogame_id INT NULL")
-                    cursor.execute("ALTER TABLE waifu ADD FOREIGN KEY (videogame_id) REFERENCES videogame(id) ON DELETE CASCADE")
-                except Exception:
-                    # La colonne existe déjà ou autre erreur, on continue
-                    pass
+                # Vérifier et ajouter la colonne gender à waifu si elle n'existe pas
+                cursor.execute("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'waifu' AND column_name = 'gender'")
+                if cursor.fetchone()['COUNT(*)'] == 0:
+                    cursor.execute("ALTER TABLE waifu ADD COLUMN gender VARCHAR(10)")
                 
                 # Modifier la contrainte CHECK si nécessaire
                 try:

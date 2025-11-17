@@ -47,11 +47,14 @@ class User:
     @staticmethod
     def get(user_id):
         """Récupérer un utilisateur par son ID"""
-        info = get_user_table_info()
-        tbl = info['table']
-        user_data = fetch_one(f"SELECT id, username, email FROM {tbl} WHERE id = %s", (user_id,))
-        if user_data:
-            return User(user_data['id'], user_data['username'], user_data['email'])
+        try:
+            info = get_user_table_info()
+            tbl = info['table']
+            user_data = fetch_one(f"SELECT id, username, email FROM {tbl} WHERE id = %s", (user_id,))
+            if user_data:
+                return User(user_data['id'], user_data['username'], user_data['email'])
+        except Exception as e:
+            logger.error("Erreur lors de la récupération de l'utilisateur %s: %s", user_id, e)
         return None
     
     @staticmethod
@@ -78,7 +81,11 @@ def login_required(f):
 def get_current_user():
     """Récupérer l'utilisateur actuel"""
     if 'user_id' in session:
-        return User.get(session['user_id'])
+        try:
+            return User.get(session['user_id'])
+        except Exception as e:
+            logger.error("Erreur lors de la récupération de l'utilisateur actuel: %s", e)
+            return None
     return None
 
 # Context processor pour fournir l'utilisateur courant (déjà présent) et l'année actuelle
@@ -142,6 +149,7 @@ def ensure_tables():
         description TEXT,
         image_url VARCHAR(500),
         added_by INT,
+        gender VARCHAR(10),  # Nouveau : sexe ('girl' ou 'boy')
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (anime_id) REFERENCES anime(id) ON DELETE CASCADE,
         FOREIGN KEY (videogame_id) REFERENCES videogame(id) ON DELETE CASCADE,
@@ -223,6 +231,13 @@ def ensure_tables():
                 try:
                     cursor.execute("ALTER TABLE waifu ADD COLUMN videogame_id INT NULL")
                     cursor.execute("ALTER TABLE waifu ADD FOREIGN KEY (videogame_id) REFERENCES videogame(id) ON DELETE CASCADE")
+                except Exception:
+                    # La colonne existe déjà ou autre erreur, on continue
+                    pass
+                    
+                # Ajouter la colonne gender si elle n'existe pas
+                try:
+                    cursor.execute("ALTER TABLE waifu ADD COLUMN gender VARCHAR(10)")
                 except Exception:
                     # La colonne existe déjà ou autre erreur, on continue
                     pass
@@ -697,6 +712,8 @@ def waifus_list():
     """Liste de toutes les waifus (avec recherche et tri)."""
     q = (request.args.get('q') or '').strip()
     sort = request.args.get('sort') or 'name_asc'
+    gender_filter = request.args.get('gender')  # Nouveau : filtre par sexe ('girl', 'boy', ou vide pour tous)
+    category_filter = request.args.get('category')  # Nouveau : filtre par catégorie ('anime', 'videogame', ou vide pour tous)
 
     # Liste blanche des tris autorisés
     _allowed_sorts = {
@@ -709,53 +726,45 @@ def waifus_list():
     }
     order_clause = _allowed_sorts.get(sort, _allowed_sorts['name_asc'])
 
-    try:
-        if q:
-            pattern = f"%{q}%"
-            waifus = fetch_all(
-                f"""
-                SELECT w.*,
-                       a.title as anime_title,
-                       v.title as videogame_title,
-                       CASE 
-                           WHEN w.anime_id IS NOT NULL THEN 'anime'
-                           WHEN w.videogame_id IS NOT NULL THEN 'videogame'
-                       END as source_type,
-                       COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
-                       COUNT(r.id) AS review_count
-                FROM waifu w
-                LEFT JOIN anime a ON w.anime_id = a.id
-                LEFT JOIN videogame v ON w.videogame_id = v.id
-                LEFT JOIN waifu_review r ON w.id = r.waifu_id
-                WHERE LOWER(w.name) LIKE %s
-                   OR LOWER(w.description) LIKE %s
-                   OR LOWER(a.title) LIKE %s
-                   OR LOWER(v.title) LIKE %s
-                GROUP BY w.id
-                ORDER BY {order_clause}
-                """,
-                (pattern.lower(), pattern.lower(), pattern.lower(), pattern.lower())
-            )
+    # Construire les conditions WHERE pour les filtres
+    where_conditions = []
+    params = []
+    if q:
+        pattern = f"%{q}%"
+        where_conditions.append("(LOWER(w.name) LIKE %s OR LOWER(w.description) LIKE %s OR LOWER(a.title) LIKE %s OR LOWER(v.title) LIKE %s)")
+        params.extend([pattern.lower(), pattern.lower(), pattern.lower(), pattern.lower()])
+    if gender_filter in ['girl', 'boy']:
+        where_conditions.append("w.gender = %s")
+        params.append(gender_filter)
+    if category_filter in ['anime', 'videogame']:
+        if category_filter == 'anime':
+            where_conditions.append("w.anime_id IS NOT NULL")
         else:
-            waifus = fetch_all(
-                f"""
-                SELECT w.*,
-                       a.title as anime_title,
-                       v.title as videogame_title,
-                       CASE 
-                           WHEN w.anime_id IS NOT NULL THEN 'anime'
-                           WHEN w.videogame_id IS NOT NULL THEN 'videogame'
-                       END as source_type,
-                       COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
-                       COUNT(r.id) AS review_count
-                FROM waifu w
-                LEFT JOIN anime a ON w.anime_id = a.id
-                LEFT JOIN videogame v ON w.videogame_id = v.id
-                LEFT JOIN waifu_review r ON w.id = r.waifu_id
-                GROUP BY w.id
-                ORDER BY {order_clause}
-                """
-            )
+            where_conditions.append("w.videogame_id IS NOT NULL")
+    where_clause = " AND ".join(where_conditions) if where_conditions else "1=1"
+
+    try:
+        waifus = fetch_all(
+            f"""
+            SELECT w.*,
+                   a.title as anime_title,
+                   v.title as videogame_title,
+                   CASE 
+                       WHEN w.anime_id IS NOT NULL THEN 'anime'
+                       WHEN w.videogame_id IS NOT NULL THEN 'videogame'
+                   END as source_type,
+                   COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                   COUNT(r.id) AS review_count
+            FROM waifu w
+            LEFT JOIN anime a ON w.anime_id = a.id
+            LEFT JOIN videogame v ON w.videogame_id = v.id
+            LEFT JOIN waifu_review r ON w.id = r.waifu_id
+            WHERE {where_clause}
+            GROUP BY w.id
+            ORDER BY {order_clause}
+            """,
+            params
+        )
     except Exception as e:
         # Si erreur de colonne manquante (ex: videogame_id) ou table manquante, tenter une mise à jour similaire à l'existant
         msg = str(e).lower()
@@ -818,7 +827,7 @@ def waifus_list():
             print(f"Erreur waifus_list: {e}")
             waifus = []
 
-    return render_template('waifus_list.html', waifus=waifus, sort=sort)
+    return render_template('waifus_list.html', waifus=waifus, sort=sort, gender_filter=gender_filter, category_filter=category_filter)
 
 @app.route('/add_waifu', methods=['GET', 'POST'])
 @login_required
@@ -826,10 +835,11 @@ def add_waifu():
     """Ajouter une nouvelle waifu"""
     if request.method == 'POST':
         name = request.form['name']
-        source_type = request.form['source_type']  # 'anime' ou 'videogame'
+        source_type = request.form['source_type']
         source_id = request.form['source_id']
         description = request.form.get('description', '')
         image_url = request.form.get('image_url', '')
+        gender = request.form['gender']  # Nouveau : récupérer le sexe
         
         # Convertir correctement les IDs selon le type de source
         if source_type == 'anime' and source_id:
@@ -846,8 +856,8 @@ def add_waifu():
             return render_template('add_waifu.html', animes=animes, videogames=videogames)
         
         execute_query(
-            "INSERT INTO waifu (name, anime_id, videogame_id, description, image_url, added_by) VALUES (%s, %s, %s, %s, %s, %s)",
-            (name, anime_id, videogame_id, description, image_url, session['user_id'])
+            "INSERT INTO waifu (name, anime_id, videogame_id, description, image_url, added_by, gender) VALUES (%s, %s, %s, %s, %s, %s, %s)",
+            (name, anime_id, videogame_id, description, image_url, session['user_id'], gender)
         )
         
         flash('Waifu ajoutée avec succès')
@@ -1328,6 +1338,7 @@ def edit_waifu(id):
         source_id = request.form['source_id']
         description = request.form.get('description', '')
         image_url = request.form.get('image_url', '')
+        gender = request.form['gender']  # Nouveau : récupérer le sexe
         
         # Convertir correctement les IDs selon le type de source
         if source_type == 'anime' and source_id:
@@ -1343,8 +1354,8 @@ def edit_waifu(id):
             return render_template('edit_waifu.html', waifu=waifu, animes=animes, videogames=videogames)
         
         execute_query(
-            "UPDATE waifu SET name = %s, anime_id = %s, videogame_id = %s, description = %s, image_url = %s WHERE id = %s",
-            (name, anime_id, videogame_id, description, image_url, id)
+            "UPDATE waifu SET name = %s, anime_id = %s, videogame_id = %s, description = %s, image_url = %s, gender = %s WHERE id = %s",
+            (name, anime_id, videogame_id, description, image_url, gender, id)
         )
         
         flash('Personnage modifié avec succès')
@@ -1358,6 +1369,194 @@ def edit_waifu(id):
 @app.route('/contact')
 def contact():
     return render_template('contact.html')
+
+@app.route('/waifus/anime/filles')
+def waifus_anime_filles():
+    """Liste des filles d'animé"""
+    q = (request.args.get('q') or '').strip()
+    sort = request.args.get('sort') or 'name_asc'
+
+    _allowed_sorts = {
+        'name_asc': 'LOWER(w.name) ASC, w.id DESC',
+        'name_desc': 'LOWER(w.name) DESC, w.id DESC',
+        'rating_desc': 'AVG(r.rating) DESC, w.id DESC',
+        'rating_asc': 'AVG(r.rating) ASC, w.id DESC',
+        'reviews_desc': 'COUNT(r.id) DESC, w.id DESC',
+        'reviews_asc': 'COUNT(r.id) ASC, w.id DESC'
+    }
+    order_clause = _allowed_sorts.get(sort, _allowed_sorts['name_asc'])
+
+    where_conditions = ["w.gender = 'girl'", "w.anime_id IS NOT NULL"]
+    params = []
+    if q:
+        pattern = f"%{q}%"
+        where_conditions.append("(LOWER(w.name) LIKE %s OR LOWER(w.description) LIKE %s)")
+        params.extend([pattern.lower(), pattern.lower()])
+    where_clause = " AND ".join(where_conditions)
+
+    try:
+        waifus = fetch_all(
+            f"""
+            SELECT w.*,
+                   a.title as anime_title,
+                   'anime' as source_type,
+                   COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                   COUNT(r.id) AS review_count
+            FROM waifu w
+            LEFT JOIN anime a ON w.anime_id = a.id
+            LEFT JOIN waifu_review r ON w.id = r.waifu_id
+            WHERE {where_clause}
+            GROUP BY w.id
+            ORDER BY {order_clause}
+            """,
+            params
+        )
+    except Exception as e:
+        flash("Erreur lors de la lecture des filles d'animé.")
+        waifus = []
+
+    return render_template('waifus_anime_filles.html', waifus=waifus, sort=sort)
+
+@app.route('/waifus/anime/garcons')
+def waifus_anime_garcons():
+    """Liste des garçons d'animé"""
+    q = (request.args.get('q') or '').strip()
+    sort = request.args.get('sort') or 'name_asc'
+
+    _allowed_sorts = {
+        'name_asc': 'LOWER(w.name) ASC, w.id DESC',
+        'name_desc': 'LOWER(w.name) DESC, w.id DESC',
+        'rating_desc': 'AVG(r.rating) DESC, w.id DESC',
+        'rating_asc': 'AVG(r.rating) ASC, w.id DESC',
+        'reviews_desc': 'COUNT(r.id) DESC, w.id DESC',
+        'reviews_asc': 'COUNT(r.id) ASC, w.id DESC'
+    }
+    order_clause = _allowed_sorts.get(sort, _allowed_sorts['name_asc'])
+
+    where_conditions = ["w.gender = 'boy'", "w.anime_id IS NOT NULL"]
+    params = []
+    if q:
+        pattern = f"%{q}%"
+        where_conditions.append("(LOWER(w.name) LIKE %s OR LOWER(w.description) LIKE %s)")
+        params.extend([pattern.lower(), pattern.lower()])
+    where_clause = " AND ".join(where_conditions)
+
+    try:
+        waifus = fetch_all(
+            f"""
+            SELECT w.*,
+                   a.title as anime_title,
+                   'anime' as source_type,
+                   COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                   COUNT(r.id) AS review_count
+            FROM waifu w
+            LEFT JOIN anime a ON w.anime_id = a.id
+            LEFT JOIN waifu_review r ON w.id = r.waifu_id
+            WHERE {where_clause}
+            GROUP BY w.id
+            ORDER BY {order_clause}
+            """,
+            params
+        )
+    except Exception as e:
+        flash("Erreur lors de la lecture des garçons d'animé.")
+        waifus = []
+
+    return render_template('waifus_anime_garcons.html', waifus=waifus, sort=sort)
+
+@app.route('/waifus/jeux-video/filles')
+def waifus_jeux_video_filles():
+    """Liste des filles de jeux vidéo"""
+    q = (request.args.get('q') or '').strip()
+    sort = request.args.get('sort') or 'name_asc'
+
+    _allowed_sorts = {
+        'name_asc': 'LOWER(w.name) ASC, w.id DESC',
+        'name_desc': 'LOWER(w.name) DESC, w.id DESC',
+        'rating_desc': 'AVG(r.rating) DESC, w.id DESC',
+        'rating_asc': 'AVG(r.rating) ASC, w.id DESC',
+        'reviews_desc': 'COUNT(r.id) DESC, w.id DESC',
+        'reviews_asc': 'COUNT(r.id) ASC, w.id DESC'
+    }
+    order_clause = _allowed_sorts.get(sort, _allowed_sorts['name_asc'])
+
+    where_conditions = ["w.gender = 'girl'", "w.videogame_id IS NOT NULL"]
+    params = []
+    if q:
+        pattern = f"%{q}%"
+        where_conditions.append("(LOWER(w.name) LIKE %s OR LOWER(w.description) LIKE %s)")
+        params.extend([pattern.lower(), pattern.lower()])
+    where_clause = " AND ".join(where_conditions)
+
+    try:
+        waifus = fetch_all(
+            f"""
+            SELECT w.*,
+                   v.title as videogame_title,
+                   'videogame' as source_type,
+                   COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                   COUNT(r.id) AS review_count
+            FROM waifu w
+            LEFT JOIN videogame v ON w.videogame_id = v.id
+            LEFT JOIN waifu_review r ON w.id = r.waifu_id
+            WHERE {where_clause}
+            GROUP BY w.id
+            ORDER BY {order_clause}
+            """,
+            params
+        )
+    except Exception as e:
+        flash("Erreur lors de la lecture des filles de jeux vidéo.")
+        waifus = []
+
+    return render_template('waifus_jeux_video_filles.html', waifus=waifus, sort=sort)
+
+@app.route('/waifus/jeux-video/garcons')
+def waifus_jeux_video_garcons():
+    """Liste des garçons de jeux vidéo"""
+    q = (request.args.get('q') or '').strip()
+    sort = request.args.get('sort') or 'name_asc'
+
+    _allowed_sorts = {
+        'name_asc': 'LOWER(w.name) ASC, w.id DESC',
+        'name_desc': 'LOWER(w.name) DESC, w.id DESC',
+        'rating_desc': 'AVG(r.rating) DESC, w.id DESC',
+        'rating_asc': 'AVG(r.rating) ASC, w.id DESC',
+        'reviews_desc': 'COUNT(r.id) DESC, w.id DESC',
+        'reviews_asc': 'COUNT(r.id) ASC, w.id DESC'
+    }
+    order_clause = _allowed_sorts.get(sort, _allowed_sorts['name_asc'])
+
+    where_conditions = ["w.gender = 'boy'", "w.videogame_id IS NOT NULL"]
+    params = []
+    if q:
+        pattern = f"%{q}%"
+        where_conditions.append("(LOWER(w.name) LIKE %s OR LOWER(w.description) LIKE %s)")
+        params.extend([pattern.lower(), pattern.lower()])
+    where_clause = " AND ".join(where_conditions)
+
+    try:
+        waifus = fetch_all(
+            f"""
+            SELECT w.*,
+                   v.title as videogame_title,
+                   'videogame' as source_type,
+                   COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                   COUNT(r.id) AS review_count
+            FROM waifu w
+            LEFT JOIN videogame v ON w.videogame_id = v.id
+            LEFT JOIN waifu_review r ON w.id = r.waifu_id
+            WHERE {where_clause}
+            GROUP BY w.id
+            ORDER BY {order_clause}
+            """,
+            params
+        )
+    except Exception as e:
+        flash("Erreur lors de la lecture des garçons de jeux vidéo.")
+        waifus = []
+
+    return render_template('waifus_jeux_video_garcons.html', waifus=waifus, sort=sort)
 
 if __name__ == '__main__':
     # Hôte/port et mode debug contrôlés par des variables d'environnement

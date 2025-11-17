@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="fas fa-heart text-danger"></i> Liste des Personnages</h1>
+    <h1><i class="fas fa-heart text-danger"></i> Filles de Jeux Vidéo</h1>
     <div>
         {% if current_user %}
             <a href="{{ url_for('add_waifu') }}" class="btn btn-brand me-2">
@@ -15,48 +15,20 @@
     </div>
 </div>
 
-{# --- Ajout: formulaire de recherche et de tri (GET) --- #}
+{# Formulaire de recherche simple #}
 <div class="mb-4">
     <form method="get" action="" class="row g-2 align-items-center">
-        <div class="col-sm-6">
+        <div class="col-sm-8">
             <div class="input-group">
                 <span class="input-group-text"><i class="fas fa-search"></i></span>
-                <input type="search" name="q" class="form-control" placeholder="Rechercher par nom, anime ou description..."
+                <input type="search" name="q" class="form-control" placeholder="Rechercher par nom ou description..."
                        value="{{ request.args.get('q', '') }}">
             </div>
         </div>
-        <div class="col-sm-2">
-            <select name="gender" class="form-select">
-                <option value="">Tous sexes</option>
-                <option value="girl" {% if request.args.get('gender') == 'girl' %}selected{% endif %}>Filles</option>
-                <option value="boy" {% if request.args.get('gender') == 'boy' %}selected{% endif %}>Garçons</option>
-            </select>
-        </div>
-        <div class="col-sm-2">
-            <select name="category" class="form-select">
-                <option value="">Toutes catégories</option>
-                <option value="anime" {% if request.args.get('category') == 'anime' %}selected{% endif %}>Animé</option>
-                <option value="videogame" {% if request.args.get('category') == 'videogame' %}selected{% endif %}>Jeux vidéo</option>
-            </select>
-        </div>
-        <div class="col-sm-2 d-grid">
+        <div class="col-sm-4 d-grid">
             <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Rechercher</button>
         </div>
     </form>
-
-    {# Affichage résumé du filtre actif #}
-    {% if request.args.get('q') or request.args.get('sort') %}
-    <div class="mt-2 small text-muted">
-        Filtres actifs:
-        {% if request.args.get('q') %} Recherche "{{ request.args.get('q') }}" {% endif %}
-        {% if request.args.get('sort') %}
-            {% set s = request.args.get('sort') %}
-            • Tri: 
-            {% if s == 'name_asc' %}Nom ↑{% elif s == 'name_desc' %}Nom ↓{% elif s == 'rating_desc' %}Note ↓{% elif s == 'rating_asc' %}Note ↑{% elif s == 'reviews_desc' %}Nombre d'avis ↓{% else %}Par défaut{% endif %}
-        {% endif %}
-        <a href="{{ url_for(request.endpoint) }}" class="ms-2">Réinitialiser</a>
-    </div>
-    {% endif %}
 </div>
 
 {% if waifus %}
@@ -76,12 +48,8 @@
                 <div class="card-body d-flex flex-column">
                     <h5 class="card-title">{{ waifu.name }}</h5>
                     <p class="text-muted mb-2">
-                        {% if waifu.source_type == 'anime' %}
-                            <i class="fas fa-tv"></i> {{ waifu.anime_title }}
-                        {% elif waifu.source_type == 'videogame' %}
-                            <i class="fas fa-gamepad"></i> {{ waifu.videogame_title }}
-                        {% endif %}
-                        · <i class="fas fa-{% if waifu.gender == 'girl' %}venus{% else %}mars{% endif %}"></i> {{ 'Fille' if waifu.gender == 'girl' else 'Garçon' }}
+                        <i class="fas fa-gamepad"></i> {{ waifu.videogame_title }}
+                        · <i class="fas fa-venus"></i> Fille
                     </p>
                     {% if waifu.avg_rating and waifu.avg_rating > 0 %}
                     <div class="mb-2">
@@ -112,13 +80,19 @@
     </div>
 {% else %}
     <div class="text-center py-5">
-        <h3>Aucun personnage pour le moment</h3>
+        <h3>Aucune fille de jeux vidéo pour le moment</h3>
         {% if current_user %}
-            <p class="text-muted">Soyez le premier à ajouter un personnage !</p>
+            <p class="text-muted">Soyez le premier à ajouter une fille de jeux vidéo !</p>
             <a href="{{ url_for('add_waifu') }}" class="btn btn-brand mt-3">
-                <i class="fas fa-plus"></i> Ajouter le premier personnage
+                <i class="fas fa-plus"></i> Ajouter une fille de jeux vidéo
             </a>
         {% endif %}
     </div>
 {% endif %}
+
+<div class="mt-4 text-center">
+    <a href="{{ url_for('waifus_list') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Retour à tous les personnages
+    </a>
+</div>
 {% endblock %}

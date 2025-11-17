@@ -68,7 +68,18 @@
                         </ul>
                     </li>
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('videogames_list') }}">Jeux Vidéo</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('waifus_list') }}">Personnages</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navWaifus" role="button" data-bs-toggle="dropdown">
+                            Personnages
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('waifus_list') }}">Tous les personnages</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('waifus_anime_filles') }}">Filles d'Animé</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('waifus_anime_garcons') }}">Garçons d'Animé</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('waifus_jeux_video_filles') }}">Filles de Jeux Vidéo</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('waifus_jeux_video_garcons') }}">Garçons de Jeux Vidéo</a></li>
+                        </ul>
+                    </li>
                     {% if current_user %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navMyTops" role="button" data-bs-toggle="dropdown">
