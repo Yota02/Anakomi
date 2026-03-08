@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card p-4 shadow-lg animate-fade-in">
+            <h1 class="hero-title h2 mb-4">Créer un tournoi personnalisé</h1>
+            
+            <form id="tournamentForm" action="{{ url_for('tournament.create_tournament') }}" method="POST">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label for="title" class="form-label fw-bold">Titre du tournoi</label>
+                        <input type="text" class="form-control" id="title" name="title" required placeholder="Ex: Mon Top 16 Shonen">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="item_type" class="form-label fw-bold">Type de contenu</label>
+                        <select class="form-select" id="item_type" name="item_type" onchange="filterItems()">
+                            <option value="anime">Animes</option>
+                            <option value="videogame">Jeux Vidéo</option>
+                            <option value="waifu">Personnages</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="tournament_size" class="form-label fw-bold">Nombre de participants</label>
+                        <select class="form-select" id="tournament_size" name="tournament_size" onchange="updateCount()">
+                            <option value="4">4 participants (2 rounds)</option>
+                            <option value="8" selected>8 participants (3 rounds)</option>
+                            <option value="16">16 participants (4 rounds)</option>
+                            <option value="32">32 participants (5 rounds)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3 d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-3">
+                        <label class="form-label fw-bold mb-0">Sélectionnez vos participants :</label>
+                        <button type="button" class="btn btn-sm btn-outline-brand" onclick="pickRandom()">Sélection Aléatoire</button>
+                    </div>
+                    <span id="selectionCount" class="badge bg-danger fs-6">0 / 8 sélectionnés</span>
+                </div>
+
+                <div class="items-grid border rounded p-3 bg-light" style="max-height: 500px; overflow-y: auto;">
+                    <div id="anime-list" class="item-list row">
+                        {% for item in animes %}
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input item-checkbox" type="checkbox" name="items" value="{{ item.id }}" id="anime_{{ item.id }}">
+                                    <label class="form-check-label small" for="anime_{{ item.id }}">{{ item.name }}</label>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div id="videogame-list" class="item-list row d-none">
+                        {% for item in videogames %}
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input item-checkbox" type="checkbox" name="items" value="{{ item.id }}" id="vg_{{ item.id }}">
+                                    <label class="form-check-label small" for="vg_{{ item.id }}">{{ item.name }}</label>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <div id="waifu-list" class="item-list row d-none">
+                        {% for item in waifus %}
+                            <div class="col-md-4 mb-2">
+                                <div class="form-check">
+                                    <input class="form-check-input item-checkbox" type="checkbox" name="items" value="{{ item.id }}" id="waifu_{{ item.id }}">
+                                    <label class="form-check-label small" for="waifu_{{ item.id }}">{{ item.name }}</label>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" id="submitBtn" class="btn btn-brand w-100 btn-lg" disabled>Lancer le tournoi</button>
+                    <p class="text-center text-muted mt-2 small">Un code unique sera généré pour partager votre tournoi.</p>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function filterItems() {
+    const type = document.getElementById('item_type').value;
+    document.querySelectorAll('.item-list').forEach(list => list.classList.add('d-none'));
+    document.getElementById(`${type}-list`).classList.remove('d-none');
+    
+    // Reset selections when type changes
+    document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = false);
+    updateCount();
+}
+
+function updateCount() {
+    const limit = parseInt(document.getElementById('tournament_size').value);
+    const checked = document.querySelectorAll('.item-checkbox:checked').length;
+    const countBadge = document.getElementById('selectionCount');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    countBadge.innerText = `${checked} / ${limit} sélectionnés`;
+    
+    if (checked >= limit) {
+        countBadge.classList.replace('bg-danger', 'bg-success');
+        submitBtn.disabled = false;
+        // Prevent selecting more than limit
+        document.querySelectorAll('.item-checkbox:not(:checked)').forEach(cb => cb.disabled = true);
+    } else {
+        countBadge.classList.replace('bg-success', 'bg-danger');
+        submitBtn.disabled = true;
+        document.querySelectorAll('.item-checkbox').forEach(cb => cb.disabled = false);
+    }
+}
+
+function pickRandom() {
+    const type = document.getElementById('item_type').value;
+    const limit = parseInt(document.getElementById('tournament_size').value);
+    const listId = `${type}-list`;
+    const checkboxes = Array.from(document.querySelectorAll(`#${listId} .item-checkbox`));
+    
+    // Reset all first
+    document.querySelectorAll('.item-checkbox').forEach(cb => {
+        cb.checked = false;
+        cb.disabled = false;
+    });
+    
+    // Shuffle and pick
+    const shuffled = checkboxes.sort(() => 0.5 - Math.random());
+    const selected = shuffled.slice(0, limit);
+    
+    selected.forEach(cb => cb.checked = true);
+    updateCount();
+}
+
+document.querySelectorAll('.item-checkbox').forEach(cb => {
+    cb.addEventListener('change', updateCount);
+});
+</script>
+{% endblock %}

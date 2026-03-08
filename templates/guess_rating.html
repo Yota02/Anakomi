@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <h1 class="mb-4">🤔 Guess the Rating</h1>
+    <p class="lead">Quelle est la note moyenne des utilisateurs pour cet anime ?</p>
+
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6">
+            <div class="card shadow-lg anime-card mb-4">
+                {% if anime.cover_url %}
+                    <img src="{{ anime.cover_url }}" class="card-img-top" alt="{{ anime.title }}" style="height: 400px; object-fit: cover;">
+                {% else %}
+                    <div class="bg-dark text-white d-flex align-items-center justify-content-center" style="height: 400px;">
+                        <span>Pas d'image</span>
+                    </div>
+                {% endif %}
+                <div class="card-body">
+                    <h2 class="card-title">{{ anime.title }}</h2>
+                </div>
+            </div>
+            
+            <div id="guess-form">
+                <label for="ratingRange" class="form-label fs-4">Votre estimation : <span id="ratingVal">2.5</span>/5</label>
+                <input type="range" class="form-range" min="0" max="5" step="0.1" id="ratingRange" oninput="updateVal(this.value)">
+                <button class="btn btn-brand btn-lg w-100 mt-4" onclick="checkGuess()">Valider</button>
+            </div>
+
+            <div id="result" class="mt-5 d-none">
+                <h2 id="result-text"></h2>
+                <h3 class="mt-2">Note réelle : <span class="text-brand">{{ true_rating }}/5</span></h3>
+                <div class="mt-4">
+                    <a href="{{ url_for('extra.guess_rating') }}" class="btn btn-brand">Nouvelle partie</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const trueRating = {{ true_rating }};
+    
+    function updateVal(val) {
+        document.getElementById('ratingVal').innerText = val;
+    }
+
+    function checkGuess() {
+        const guess = parseFloat(document.getElementById('ratingRange').value);
+        const diff = Math.abs(guess - trueRating);
+        const resultText = document.getElementById('result-text');
+        
+        if (diff <= 0.2) {
+            resultText.innerText = "🎯 Incroyable ! Précision chirurgicale.";
+            resultText.className = "text-success";
+        } else if (diff <= 0.5) {
+            resultText.innerText = "✅ Très proche ! Bien joué.";
+            resultText.className = "text-success";
+        } else if (diff <= 1.0) {
+            resultText.innerText = "🆗 Pas mal, mais peut mieux faire.";
+            resultText.className = "text-warning";
+        } else {
+            resultText.innerText = "❌ Houla, vous êtes loin !";
+            resultText.className = "text-danger";
+        }
+
+        document.getElementById('guess-form').classList.add('d-none');
+        document.getElementById('result').classList.remove('d-none');
+    }
+</script>
+
+<style>
+    .text-brand { color: #ff4757; }
+    .btn-brand { background-color: #ff4757; color: white; }
+    .btn-brand:hover { background-color: #e84118; color: white; }
+    .anime-card { border-radius: 15px; overflow: hidden; border: none; }
+</style>
+{% endblock %}

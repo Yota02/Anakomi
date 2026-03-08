@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card p-4 shadow-lg animate-fade-in">
+            <h1 class="hero-title h2 mb-2 text-center">{{ poll.question }}</h1>
+            <p class="text-muted text-center mb-4 small">Par {{ poll.creator or 'Anonyme' }} le {{ poll.created_at.strftime('%d/%m/%Y') }}</p>
+
+            {% if user_vote %}
+                <div class="alert alert-success text-center">Vous avez déjà voté pour ce sondage.</div>
+                
+                <div class="results-container mt-4">
+                    {% for option in options %}
+                        {% set percent = (option.vote_count / total_votes * 100) if total_votes > 0 else 0 %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <strong>{{ option.option_text }}</strong>
+                                <span>{{ option.vote_count }} vote(s) ({{ percent | round(1) }}%)</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar {% if user_vote.option_id == option.id %}bg-danger{% else %}bg-secondary{% endif %}" 
+                                     role="progressbar" 
+                                     style="width: {{ percent }}%;" 
+                                     aria-valuenow="{{ percent }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <p class="text-center mt-4 text-muted">Total des votes : {{ total_votes }}</p>
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('poll.list_polls') }}" class="btn btn-outline-secondary">Retour à la liste</a>
+                </div>
+            {% else %}
+                <form action="{{ url_for('poll.poll_vote', poll_id=poll.id) }}" method="POST">
+                    <div class="list-group mb-4">
+                        {% for option in options %}
+                            <label class="list-group-item d-flex align-items-center cursor-pointer p-3" style="border-radius: 10px !important; margin-bottom: 5px; cursor: pointer;">
+                                <input class="form-check-input me-3" type="radio" name="option_id" value="{{ option.id }}" required>
+                                {{ option.option_text }}
+                            </label>
+                        {% endfor %}
+                    </div>
+                    <button type="submit" class="btn btn-brand w-100 btn-lg">Voter</button>
+                    <a href="{{ url_for('poll.list_polls') }}" class="btn btn-outline-secondary w-100 mt-2">Retour</a>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

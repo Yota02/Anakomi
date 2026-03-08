@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <h1 class="mb-4">💖 Ship Generator</h1>
+    <p class="lead">Le destin a réuni ces deux personnages...</p>
+
+    <div class="row align-items-center justify-content-center mt-5">
+        <div class="col-md-4">
+            <div class="card shadow-lg anime-card">
+                {% if ship1.image_url %}
+                    <img src="{{ ship1.image_url }}" class="card-img-top" alt="{{ ship1.name }}" style="height: 350px; object-fit: cover;">
+                {% else %}
+                    <div class="bg-dark text-white d-flex align-items-center justify-content-center" style="height: 350px;">
+                        <span>Pas d'image</span>
+                    </div>
+                {% endif %}
+                <div class="card-body">
+                    <h3 class="card-title">{{ ship1.name }}</h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-2 fs-1">
+            ➕
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-lg anime-card">
+                {% if ship2.image_url %}
+                    <img src="{{ ship2.image_url }}" class="card-img-top" alt="{{ ship2.name }}" style="height: 350px; object-fit: cover;">
+                {% else %}
+                    <div class="bg-dark text-white d-flex align-items-center justify-content-center" style="height: 350px;">
+                        <span>Pas d'image</span>
+                    </div>
+                {% endif %}
+                <div class="card-body">
+                    <h3 class="card-title">{{ ship2.name }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-5">
+        <h2 class="text-brand">Ship Name: <span class="fw-bold">{{ ship_name }}</span></h2>
+        <div class="mt-4">
+            <a href="{{ url_for('extra.ship_generator') }}" class="btn btn-lg btn-brand">Générer un autre ship</a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .text-brand { color: #ff4757; }
+    .btn-brand { background-color: #ff4757; color: white; }
+    .btn-brand:hover { background-color: #e84118; color: white; }
+    .anime-card { border-radius: 15px; overflow: hidden; }
+</style>
+{% endblock %}

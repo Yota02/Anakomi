@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-5 align-items-center">
+        <div class="col-md-8">
+            <h1 class="hero-title mb-1">{{ tournament.title }}</h1>
+            <p class="text-muted">Par {{ tournament.creator or 'Anonyme' }} | Code : <strong>{{ tournament.share_code }}</strong></p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <button class="btn btn-outline-secondary me-2" data-bs-toggle="modal" data-bs-target="#shareModal">
+                <i class="fas fa-share-alt me-2"></i>Partager
+            </button>
+            {% if current_user and current_user.id == tournament.created_by %}
+                <!-- Controls for the creator to advance rounds -->
+                <div class="dropdown d-inline-block">
+                    <button class="btn btn-brand dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        Gestion du Tournoi
+                    </button>
+                    <ul class="dropdown-menu">
+                        {% for r in [1, 2, 3] %}
+                            <li>
+                                <form action="{{ url_for('tournament.advance_round', code=tournament.share_code) }}" method="POST">
+                                    <input type="hidden" name="round" value="{{ r }}">
+                                    <button type="submit" class="dropdown-item">Clore Round {{ r }}</button>
+                                </form>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tournament Brackets -->
+    <div class="tournament-bracket d-flex gap-4 overflow-auto pb-4">
+        {% for round_num, round_matches in rounds.items() %}
+            <div class="round-column" style="min-width: 300px;">
+                <h4 class="text-center mb-4 p-2 rounded bg-light border" style="font-family: var(--font-header);">
+                    {{ get_label(round_num, total_rounds) }}
+                </h4>
+                
+                {% for match in round_matches %}
+                    <div class="match-card mb-4 p-3 card shadow-sm {% if match.winner_id %}border-success{% endif %}" style="position: relative;">
+                        <div class="d-flex flex-column gap-3">
+                            <!-- Participant 1 -->
+                            <div class="participant d-flex align-items-center justify-content-between p-2 rounded {% if match.winner_id == match.p1_id %}bg-success text-white{% elif match.winner_id and match.winner_id != match.p1_id %}opacity-50{% else %}bg-white border{% endif %}">
+                                <div class="d-flex align-items-center gap-2">
+                                    <img src="{{ match.p1_details.image or url_for('static', filename='Anakomi.png') }}" alt="" style="width: 40px; height: 40px; object-fit: cover; border-radius: 5px;">
+                                    <span class="fw-bold small">{{ match.p1_details.name }}</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-dark">{{ match.p1_votes }}</span>
+                                    {% if not match.winner_id and match.id not in user_votes %}
+                                        <form action="{{ url_for('tournament.tournament_vote') }}" method="POST" class="m-0">
+                                            <input type="hidden" name="match_id" value="{{ match.id }}">
+                                            <input type="hidden" name="participant_id" value="{{ match.p1_id }}">
+                                            <input type="hidden" name="code" value="{{ tournament.share_code }}">
+                                            <button type="submit" class="btn btn-sm btn-brand p-1" style="line-height: 1;"><i class="fas fa-check"></i></button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="text-center small text-muted fw-bold">VS</div>
+
+                            <!-- Participant 2 -->
+                            <div class="participant d-flex align-items-center justify-content-between p-2 rounded {% if match.winner_id == match.p2_id %}bg-success text-white{% elif match.winner_id and match.winner_id != match.p2_id %}opacity-50{% else %}bg-white border{% endif %}">
+                                <div class="d-flex align-items-center gap-2">
+                                    <img src="{{ match.p2_details.image or url_for('static', filename='Anakomi.png') }}" alt="" style="width: 40px; height: 40px; object-fit: cover; border-radius: 5px;">
+                                    <span class="fw-bold small">{{ match.p2_details.name }}</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-dark">{{ match.p2_votes }}</span>
+                                    {% if not match.winner_id and match.id not in user_votes %}
+                                        <form action="{{ url_for('tournament.tournament_vote') }}" method="POST" class="m-0">
+                                            <input type="hidden" name="match_id" value="{{ match.id }}">
+                                            <input type="hidden" name="participant_id" value="{{ match.p2_id }}">
+                                            <input type="hidden" name="code" value="{{ tournament.share_code }}">
+                                            <button type="submit" class="btn btn-sm btn-brand p-1" style="line-height: 1;"><i class="fas fa-check"></i></button>
+                                        </form>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if match.winner_id %}
+                            <div class="position-absolute top-0 end-0 translate-middle-y mt-2 me-2">
+                                <i class="fas fa-crown text-warning fs-4"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Share Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Partager le tournoi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p>Scanner le QR Code pour accéder au tournoi :</p>
+                <div class="mb-4">
+                    {% set share_url = request.url %}
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ share_url }}" alt="QR Code" class="img-fluid border p-2 bg-white">
+                </div>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" value="{{ share_url }}" id="shareUrl" readonly>
+                    <button class="btn btn-brand" onclick="copyUrl()">Copier le lien</button>
+                </div>
+                <div class="alert alert-light border small">
+                    Code de partage : <strong>{{ tournament.share_code }}</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyUrl() {
+    const copyText = document.getElementById("shareUrl");
+    copyText.select();
+    copyText.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(copyText.value);
+    alert("Lien copié !");
+}
+</script>
+
+<style>
+.tournament-bracket {
+    min-height: 600px;
+    padding: 20px 0;
+}
+.round-column {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+}
+.match-card {
+    transition: transform 0.2s;
+}
+.match-card:hover {
+    transform: scale(1.02);
+}
+.participant {
+    transition: all 0.2s;
+}
+</style>
+{% endblock %}

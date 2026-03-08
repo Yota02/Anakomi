@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <h1 class="mb-4">🎰 Roulette Russe</h1>
+    <p class="lead">Le destin a choisi pour vous...</p>
+
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6">
+            <div class="card shadow-lg anime-card">
+                {% if item.cover_url %}
+                    <img src="{{ item.cover_url }}" class="card-img-top" alt="{{ item.title }}" style="height: 400px; object-fit: cover;">
+                {% else %}
+                    <div class="bg-dark text-white d-flex align-items-center justify-content-center" style="height: 400px;">
+                        <span>Pas d'image</span>
+                    </div>
+                {% endif %}
+                <div class="card-body">
+                    <h2 class="card-title">{{ item.title }}</h2>
+                    <p class="badge bg-brand">{{ item.genre }}</p>
+                    <p class="text-muted">{{ item.year }}</p>
+                    <p class="card-text">{{ item.description|truncate(150) }}</p>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="{{ url_for('anime.anime_detail', id=item.id) }}" class="btn btn-brand">Voir et Noter</a>
+                        <a href="{{ url_for('extra.roulette_russe') }}" class="btn btn-outline-secondary">Relancer la roulette</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .anime-card {
+        transition: transform 0.3s;
+        border: none;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    .anime-card:hover {
+        transform: translateY(-10px);
+    }
+    .bg-brand {
+        background-color: #ff4757;
+    }
+    .btn-brand {
+        background-color: #ff4757;
+        color: white;
+    }
+    .btn-brand:hover {
+        background-color: #e84118;
+        color: white;
+    }
+</style>
+{% endblock %}

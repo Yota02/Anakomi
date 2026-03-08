@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="hero-title">Tournois communautaires</h1>
+            {% if current_user %}
+                <a href="{{ url_for('tournament.create_tournament') }}" class="btn btn-brand">Créer un tournoi</a>
+            {% endif %}
+        </div>
+
+        <div class="row">
+            {% for tournament in tournaments %}
+                <div class="col-md-6 mb-4">
+                    <div class="card animate-fade-in h-100">
+                        <div class="card-body">
+                            <h2 class="h5 card-title fw-bold">{{ tournament.title }}</h2>
+                            <p class="text-muted small mb-2">
+                                <i class="fas fa-layer-group me-1"></i> {{ tournament.item_type | capitalize }}
+                                <span class="mx-2">|</span>
+                                <i class="fas fa-users me-1"></i> Par {{ tournament.creator or 'Anonyme' }}
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <span class="badge bg-light text-dark border">CODE: {{ tournament.share_code }}</span>
+                                <a href="{{ url_for('tournament.view_tournament', code=tournament.share_code) }}" class="btn btn-outline-secondary btn-sm">Participer / Voir</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="col-12 text-center py-5">
+                    <p class="text-muted">Aucun tournoi actif pour le moment.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

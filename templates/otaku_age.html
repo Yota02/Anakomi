@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <h1 class="mb-4">🎂 Votre Âge Otaku</h1>
+    <p class="lead">Basé sur votre activité sur Anakomi...</p>
+
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-8">
+            <div class="card shadow-lg p-5">
+                <div class="row mb-5">
+                    <div class="col-md-4">
+                        <div class="fs-1 fw-bold text-brand">{{ stats.animes }}</div>
+                        <div class="text-muted">Animes ajoutés</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="fs-1 fw-bold text-brand">{{ stats.reviews }}</div>
+                        <div class="text-muted">Avis donnés</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="fs-1 fw-bold text-brand">{{ stats.collection }}</div>
+                        <div class="text-muted">Cartes collectionnées</div>
+                    </div>
+                </div>
+
+                <hr class="my-5">
+
+                <h2 class="mb-3">Score Global: <span class="text-brand">{{ score }}</span></h2>
+                <h1 class="display-3 fw-bold mb-5" style="letter-spacing: 2px;">{{ level }}</h1>
+                
+                <div class="progress mb-4" style="height: 30px; border-radius: 15px;">
+                    <div class="progress-bar bg-brand" role="progressbar" style="width: {{ [score/5, 100]|min }}%;" aria-valuenow="{{ score }}" aria-valuemin="0" aria-valuemax="500"></div>
+                </div>
+
+                <p class="text-muted">Prochain niveau : 
+                    {% if score < 50 %}Amateur (50 pts)
+                    {% elif score < 100 %}Otaku Confirmé (100 pts)
+                    {% elif score < 200 %}Vétéran (200 pts)
+                    {% elif score < 500 %}Dieu de l'Anime (500 pts)
+                    {% else %}Légende Vivante
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .text-brand { color: #ff4757; }
+    .bg-brand { background-color: #ff4757; }
+</style>
+{% endblock %}

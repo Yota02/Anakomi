@@ -1,67 +1,84 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row mb-3">
+<div class="row mb-5 animate-fade-in">
     <div class="col-md-4">
         {% if anime.cover_url %}
-        <img src="{{ anime.cover_url }}" class="img-fluid rounded" alt="{{ anime.title }}" style="max-height: 420px; width: 100%; object-fit: cover;">
+        <div class="card p-1 shadow-lg" style="border: 2px solid var(--accent-primary);">
+            <img src="{{ anime.cover_url }}" class="img-fluid rounded" alt="{{ anime.title }}" style="max-height: 550px; width: 100%; object-fit: cover;">
+        </div>
         {% else %}
-        <div class="d-flex align-items-center justify-content-center bg-light rounded" style="height: 420px;">
+        <div class="d-flex align-items-center justify-content-center rounded shadow-lg" style="height: 480px; background: rgba(255, 255, 255, 0.05); border: 1px dashed var(--glass-border);">
             <i class="fas fa-image fa-4x text-muted"></i>
         </div>
         {% endif %}
     </div>
     <div class="col-md-8">
-        <div class="d-flex justify-content-between align-items-start mb-2">
+        <div class="d-flex justify-content-between align-items-start mb-4">
             <div>
-                <h1 class="mb-1">{{ anime.title }}</h1>
-                <p class="mb-1 text-muted">{{ anime.genre or 'Genre inconnu' }} · {{ anime.year or 'Année inconnue' }}</p>
+                <h1 class="hero-title mb-2" style="font-size: 3.5rem;">{{ anime.title }}</h1>
+                <div class="d-flex flex-wrap gap-2">
+                    {% if anime.genre %}
+                    <span class="badge-genre"><i class="fas fa-tag me-1"></i>{{ anime.genre }}</span>
+                    {% endif %}
+                    {% if anime.year %}
+                    <span class="badge-genre"><i class="fas fa-calendar-alt me-1"></i>{{ anime.year }}</span>
+                    {% endif %}
+                </div>
             </div>
             {% if current_user %}
-                <a href="{{ url_for('edit_anime', id=anime.id) }}" class="btn btn-outline-primary btn-sm">
-                    <i class="fas fa-edit"></i> Modifier
+                <a href="{{ url_for('anime.edit_anime', id=anime.id) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-edit me-2"></i>Modifier
                 </a>
             {% endif %}
         </div>
 
-        <p class="lead">{{ anime.description }}</p>
+        <div class="mb-5 p-4 rounded" style="background: rgba(230, 57, 70, 0.03); border-left: 4px solid var(--accent-secondary);">
+            <h5 class="fw-bold mb-3" style="font-family: var(--font-header); text-transform: uppercase; letter-spacing: 2px; color: var(--accent-secondary);">Synopsis // 概要</h5>
+            <p class="text-muted" style="line-height: 1.8; font-size: 1.1rem; color: var(--text-main) !important;">{{ anime.description }}</p>
+        </div>
 
         {% if avg_rating and avg_rating > 0 %}
-        <div class="d-flex align-items-center gap-3 mt-3">
-            <h4 class="mb-0">{{ avg_rating }}/5</h4>
-            <div>
-                {% for i in range(1, 6) %}
-                    {% if i <= avg_rating %}
-                        <i class="fas fa-star text-warning"></i>
-                    {% else %}
-                        <i class="far fa-star text-warning"></i>
-                    {% endif %}
-                {% endfor %}
+        <div class="d-flex align-items-center gap-4 p-4 rounded" style="width: fit-content; background: var(--bg-card); border: 1px solid var(--glass-border); box-shadow: var(--card-shadow);">
+            <div class="text-center border-end border-secondary pe-4">
+                <div class="h1 fw-bold mb-0" style="color: var(--accent-warm);">{{ '%.1f'|format(avg_rating) }}</div>
+                <div class="small text-muted text-uppercase">Score</div>
             </div>
-            <small class="text-muted">({{ reviews|length }} avis)</small>
+            <div class="ps-1">
+                <div class="rating fs-4 mb-1">
+                    {% for i in range(1, 6) %}
+                        {% if i <= avg_rating|int %}
+                            <i class="fas fa-star" style="color: var(--accent-warm);"></i>
+                        {% elif i == (avg_rating|int + 1) and (avg_rating - avg_rating|int) >= 0.5 %}
+                            <i class="fas fa-star-half-alt" style="color: var(--accent-warm);"></i>
+                        {% else %}
+                            <i class="far fa-star" style="color: var(--accent-warm); opacity: 0.3;"></i>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                <div class="small text-muted fw-medium">{{ reviews|length }} avis d'utilisateurs</div>
+            </div>
         </div>
         {% endif %}
     </div>
 </div>
 
-<hr>
+<div class="my-5" style="border-top: 1px solid var(--glass-border);"></div>
 
 {% if current_user %}
-<div class="row mb-4">
-    <div class="col-md-6">
+<div class="row mb-5">
+    <div class="col-md-8">
         {% set user_review = reviews|selectattr("user_id", "equalto", current_user.id)|first %}
-        <div class="card p-3">
+        <div class="card p-4">
             <div class="card-body">
                 {% if user_review %}
-                    <h5 class="card-title">Modifier votre avis</h5>
-                    <div class="alert alert-info"><small>Vous avez déjà noté cet anime. Modifiez ci-dessous.</small></div>
+                    <h5 class="card-title mb-4" style="font-family: var(--font-header);"><i class="fas fa-comment-dots me-2 text-primary"></i>Modifier votre avis</h5>
                 {% else %}
-                    <h5 class="card-title">Ajouter un avis</h5>
+                    <h5 class="card-title mb-4" style="font-family: var(--font-header);"><i class="fas fa-plus-circle me-2 text-primary"></i>Ajouter un avis</h5>
                 {% endif %}
-                <form method="POST" action="{{ url_for('add_review', anime_id=anime.id) }}">
-                    <div class="mb-3">
-                        <label class="form-label">Note</label>
-                        <!-- Nouveau : étoiles cliquables + input caché -->
+                <form method="POST" action="{{ url_for('anime.add_review', anime_id=anime.id) }}">
+                    <div class="mb-4">
+                        <label class="form-label text-muted small text-uppercase fw-bold">Votre Note</label>
                         <div class="rating-stars" id="rating-stars" data-selected="{{ user_review.rating if user_review else 0 }}">
                             {% for i in range(1, 6) %}
                                 <i class="far fa-star star" data-value="{{ i }}" role="button" tabindex="0" aria-label="{{ i }} étoile"></i>
@@ -69,11 +86,11 @@
                         </div>
                         <input type="hidden" name="rating" id="rating-input" value="{{ user_review.rating if user_review else '' }}" required>
                     </div>
-                    <div class="mb-3">
-                        <label for="comment" class="form-label">Commentaire</label>
-                        <textarea class="form-control" id="comment" name="comment" rows="3">{% if user_review %}{{ user_review.comment }}{% endif %}</textarea>
+                    <div class="mb-4">
+                        <label for="comment" class="form-label text-muted small text-uppercase fw-bold">Commentaire</label>
+                        <textarea class="form-control" id="comment" name="comment" rows="4" placeholder="Qu'avez-vous pensé de cet anime ?">{% if user_review %}{{ user_review.comment }}{% endif %}</textarea>
                     </div>
-                    <button type="submit" class="btn btn-brand">{% if user_review %}Modifier l'avis{% else %}Publier l'avis{% endif %}</button>
+                    <button type="submit" class="btn btn-brand">{% if user_review %}Mettre à jour{% else %}Publier l'avis{% endif %}</button>
                 </form>
             </div>
         </div>
@@ -81,51 +98,152 @@
 </div>
 {% endif %}
 
-<hr>
+<h3 class="mb-4" style="font-family: var(--font-header);"><i class="fas fa-users me-2" style="color: var(--accent-primary);"></i>Avis des utilisateurs // レビュー</h3>
 
-<h3>Avis des utilisateurs</h3>
-{% for review in reviews %}
-<div class="card mb-3">
-    <div class="card-body">
-        <div class="d-flex justify-content-between">
-            <h6 class="card-title mb-1">{{ review.username }}
-                {% if current_user and review.user_id == current_user.id %}
-                    <span class="badge bg-secondary">Votre avis</span>
-                {% endif %}
-            </h6>
-            <div>
-                {% for i in range(1, 6) %}
-                    {% if i <= review.rating %}
-                        <i class="fas fa-star text-warning"></i>
-                    {% else %}
-                        <i class="far fa-star text-warning"></i>
+<div class="row">
+    <div class="col-12">
+        {% macro render_review(review, all_reviews, level=0) %}
+            <div class="card mb-3 {% if level > 0 %}ms-4 ms-md-5 border-start border-primary{% endif %}" style="{% if level > 0 %}background: rgba(0,0,0,0.01);{% endif %}">
+                <div class="card-body p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h6 class="card-title mb-0 fw-bold" style="color: var(--accent-primary);">{{ review.username }}</h6>
+                            <small class="text-muted" style="font-size: 0.75rem;">{{ review.date_created.strftime('%d/%m/%Y %H:%M') if review.date_created is not string else review.date_created }}</small>
+                        </div>
+                        {% if review.rating %}
+                        <div class="rating-display">
+                            {% for i in range(1, 6) %}
+                                {% if i <= review.rating %}
+                                    <i class="fas fa-star" style="color: var(--accent-warm); font-size: 0.8rem;"></i>
+                                {% else %}
+                                    <i class="far fa-star" style="color: var(--accent-warm); opacity: 0.2; font-size: 0.8rem;"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    <p class="card-text mb-2" style="color: var(--text-main); font-size: 0.95rem;">{{ review.comment }}</p>
+                    
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        {% if current_user %}
+                        <button class="btn btn-sm btn-link p-0 text-decoration-none text-muted" onclick="toggleReplyForm({{ review.id }})" style="font-size: 0.8rem;">
+                            <i class="fas fa-reply me-1"></i>Répondre
+                        </button>
+                        
+                        <div class="dropdown d-inline-block">
+                            <button class="btn btn-sm btn-link p-0 text-decoration-none text-muted dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.8rem;">
+                                <i class="far fa-smile me-1"></i>Réagir
+                            </button>
+                            <ul class="dropdown-menu p-2" style="min-width: auto; white-space: nowrap;">
+                                <li class="d-inline-block">
+                                    <form method="POST" action="{{ url_for('anime.react_review', review_id=review.id) }}" class="d-inline">
+                                        <input type="hidden" name="emoji" value="🔥">
+                                        <input type="hidden" name="anime_id" value="{{ anime.id }}">
+                                        <button type="submit" class="btn btn-sm p-1">🔥</button>
+                                    </form>
+                                </li>
+                                <li class="d-inline-block">
+                                    <form method="POST" action="{{ url_for('anime.react_review', review_id=review.id) }}" class="d-inline">
+                                        <input type="hidden" name="emoji" value="😭">
+                                        <input type="hidden" name="anime_id" value="{{ anime.id }}">
+                                        <button type="submit" class="btn btn-sm p-1">😭</button>
+                                    </form>
+                                </li>
+                                <li class="d-inline-block">
+                                    <form method="POST" action="{{ url_for('anime.react_review', review_id=review.id) }}" class="d-inline">
+                                        <input type="hidden" name="emoji" value="💯">
+                                        <input type="hidden" name="anime_id" value="{{ anime.id }}">
+                                        <button type="submit" class="btn btn-sm p-1">💯</button>
+                                    </form>
+                                </li>
+                                <li class="d-inline-block">
+                                    <form method="POST" action="{{ url_for('anime.react_review', review_id=review.id) }}" class="d-inline">
+                                        <input type="hidden" name="emoji" value="❤️">
+                                        <input type="hidden" name="anime_id" value="{{ anime.id }}">
+                                        <button type="submit" class="btn btn-sm p-1">❤️</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+                        {% if review.reactions %}
+                            <div class="d-flex gap-2">
+                            {% for react in review.reactions.split('|') %}
+                                {% set r_parts = react.split(':') %}
+                                <span class="badge rounded-pill bg-light text-dark border" style="font-size: 0.7rem;">
+                                    {{ r_parts[0] }} {{ r_parts[1] }}
+                                </span>
+                            {% endfor %}
+                            </div>
+                        {% endif %}
+                        
+                        {% if current_user and review.user_id == current_user.id and not review.parent_id %}
+                            <span class="badge" style="background: rgba(255, 0, 127, 0.1); color: var(--accent-secondary); border: 1px solid var(--accent-secondary); font-size: 0.7rem;">Votre avis principal</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Reply Form (Hidden) -->
+                    {% if current_user %}
+                    <div id="reply-form-{{ review.id }}" class="mt-3 d-none animate-fade-in">
+                        <form method="POST" action="{{ url_for('anime.add_review', anime_id=anime.id) }}">
+                            <input type="hidden" name="parent_id" value="{{ review.id }}">
+                            <div class="mb-2">
+                                <textarea class="form-control form-control-sm" name="comment" rows="2" placeholder="Votre réponse..." required></textarea>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-sm btn-brand">Envoyer</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleReplyForm({{ review.id }})">Annuler</button>
+                            </div>
+                        </form>
+                    </div>
                     {% endif %}
-                {% endfor %}
+                </div>
             </div>
-        </div>
-        <p class="card-text mt-2">{{ review.comment }}</p>
-        <small class="text-muted">{{ review.date_created.strftime('%d/%m/%Y à %H:%M') if review.date_created is not string else review.date_created }}</small>
+
+            <!-- Render Children -->
+            {% for child in all_reviews if child.parent_id == review.id %}
+                {{ render_review(child, all_reviews, level + 1) }}
+            {% endfor %}
+        {% endmacro %}
+
+        {% for review in reviews if not review.parent_id %}
+            {{ render_review(review, reviews) }}
+        {% else %}
+            <div class="p-5 text-center rounded" style="background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--glass-border);">
+                <i class="fas fa-comments fa-3x mb-3 text-muted opacity-20"></i>
+                <p class="text-muted fs-5">Aucun avis pour le moment. Soyez le premier à donner le vôtre !</p>
+            </div>
+        {% endfor %}
     </div>
 </div>
-{% endfor %}
 
-{% if not reviews %}
-<p class="text-muted">Aucun avis pour cet anime.</p>
-{% endif %}
+<script>
+function toggleReplyForm(reviewId) {
+    const form = document.getElementById(`reply-form-${reviewId}`);
+    if (form) {
+        form.classList.toggle('d-none');
+    }
+}
+</script>
 
 <!-- CSS local pour le composant de notation -->
 <style>
-/* Remplacement du style radio précédent par styles pour étoiles cliquables */
 .rating-stars .star {
     cursor: pointer;
-    color: #ddd;
-    font-size: 1.6rem;
-    transition: color 0.12s;
-    margin-right: 6px;
+    color: var(--text-muted);
+    font-size: 2rem;
+    transition: var(--transition);
+    margin-right: 10px;
 }
 .rating-stars .star.filled {
-    color: #ffc107;
+    color: var(--accent-warm);
+    filter: drop-shadow(0 0 8px rgba(252, 211, 77, 0.4));
 }
+.rating-stars .star:hover {
+    transform: scale(1.2);
+}
+</style>
 .rating-stars .star:focus {
     outline: 2px solid rgba(111,66,193,0.25);
     border-radius: 4px;

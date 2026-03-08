@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 text-center">
+        <h1 class="hero-title mb-4">Random Picker</h1>
+        <p class="text-muted mb-5">Laissez le destin choisir pour vous !</p>
+
+        <div class="mb-5">
+            <a href="{{ url_for('extra.random_picker', category='anime') }}" class="btn btn-brand mx-2 {% if category == 'anime' %}active{% endif %}">Anime</a>
+            <a href="{{ url_for('extra.random_picker', category='videogame') }}" class="btn btn-brand mx-2 {% if category == 'videogame' %}active{% endif %}">Jeu Vidéo</a>
+            <a href="{{ url_for('extra.random_picker', category='waifu') }}" class="btn btn-brand mx-2 {% if category == 'waifu' %}active{% endif %}">Personnage</a>
+        </div>
+
+        {% if item %}
+            <div class="card animate-fade-in mx-auto" style="max-width: 400px;">
+                <div class="card-img-wrapper">
+                    <img src="{{ item.cover_url or item.image_url or url_for('static', filename='Anakomi.png') }}" class="card-img-top" alt="{{ item.title or item.name }}" style="height: 400px; object-fit: cover;">
+                </div>
+                <div class="card-body">
+                    <h2 class="h4 card-title">{{ item.title or item.name }}</h2>
+                    <p class="card-text text-muted">{{ item.description | truncate(150) }}</p>
+                    <a href="{% if category == 'anime' %}{{ url_for('anime.anime_detail', anime_id=item.id) }}{% elif category == 'videogame' %}{{ url_for('videogame.videogame_detail', videogame_id=item.id) }}{% else %}{{ url_for('waifu.waifu_detail', waifu_id=item.id) }}{% endif %}" class="btn btn-outline-secondary w-100">Voir les détails</a>
+                </div>
+            </div>
+            <div class="mt-4">
+                <a href="{{ url_for('extra.random_picker', category=category) }}" class="btn btn-brand btn-lg">
+                    <i class="fas fa-redo me-2"></i>Relancer
+                </a>
+            </div>
+        {% else %}
+            <div class="alert alert-info">Aucun élément trouvé dans cette catégorie.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

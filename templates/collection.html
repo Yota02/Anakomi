@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <h1 class="mb-5 display-4 fw-bold">🃏 Ma Collection de Cartes</h1>
+
+    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
+        {% for item in items %}
+        <div class="col">
+            <div class="card h-100 shadow-sm collection-card position-relative">
+                {% if item.image_url %}
+                    <img src="{{ item.image_url }}" class="card-img-top" alt="{{ item.name }}" style="height: 300px; object-fit: cover; border-radius: 10px;">
+                {% else %}
+                    <div class="bg-dark text-white d-flex align-items-center justify-content-center" style="height: 300px; border-radius: 10px;">
+                        <span>Pas d'image</span>
+                    </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title fw-bold">{{ item.name }}</h5>
+                    <span class="position-absolute top-0 end-0 badge rounded-pill bg-brand m-2 fs-6">
+                        x{{ item.quantity }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12 text-center py-5">
+            <h3 class="text-muted">Votre collection est vide...</h3>
+            <a href="{{ url_for('extra.gacha') }}" class="btn btn-brand btn-lg mt-3">Aller au Gacha</a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-5 pt-5">
+        <a href="{{ url_for('extra.gacha') }}" class="btn btn-brand btn-lg px-5">Tirer une carte</a>
+        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary btn-lg px-5">Retour</a>
+    </div>
+</div>
+
+<style>
+    .bg-brand { background-color: #ff4757; }
+    .btn-brand { background-color: #ff4757; color: white; }
+    .btn-brand:hover { background-color: #e84118; color: white; }
+    .collection-card { border-radius: 15px; overflow: hidden; border: 2px solid #ddd; transition: transform 0.2s; }
+    .collection-card:hover { transform: translateY(-10px); border-color: #ff4757; }
+</style>
+{% endblock %}

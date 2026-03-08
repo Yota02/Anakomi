@@ -6,7 +6,7 @@
     <title>Anakomi</title>
 
     <!-- Nouveau : font & styles personnalisés -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Roboto+Slab:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
@@ -14,45 +14,274 @@
     <link rel="icon" href="{{ url_for('static', filename='Anakomi.ico') }}" type="image/x-icon">
 
     <style>
-    :root{
-        --brand:#6f42c1;
-        --muted:#6c757d;
-        --card-radius:12px;
-        --card-shadow: 0 6px 18px rgba(15,15,30,0.06);
+    :root {
+        --bg-main: #fdfafb; /* Blanc cassé avec une touche de rose/rouge très légère */
+        --bg-card: rgba(255, 255, 255, 0.8);
+        --accent-primary: #e63946; /* Rouge sanctuaire / néon */
+        --accent-secondary: #7209b7; /* Violet électrique / futuriste */
+        --accent-warm: #f4a261; /* Orange doux pour le côté cosi */
+        --text-main: #2d3436;
+        --text-muted: #636e72;
+        --glass-border: rgba(230, 57, 70, 0.1);
+        --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        --font-main: 'Noto Sans JP', sans-serif;
+        --font-header: 'Space Grotesk', sans-serif;
     }
-    body{
-        font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-        background: linear-gradient(180deg, #f8fafc 0%, #ffffff 60%);
-        color: #222;
+
+    body {
+        font-family: var(--font-main);
+        background-color: var(--bg-main);
+        background-image: 
+            radial-gradient(circle at 10% 20%, rgba(230, 57, 70, 0.03) 0%, transparent 40%),
+            radial-gradient(circle at 90% 80%, rgba(114, 9, 183, 0.03) 0%, transparent 40%),
+            url('https://www.transparenttextures.com/patterns/natural-paper.png');
+        color: var(--text-main);
+        line-height: 1.6;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
     }
-    .navbar-brand{ font-weight:700; font-family:'Roboto Slab', serif; color:var(--brand) !important; }
-    .navbar-brand img.brand-logo{
-        height:44px; /* agrandi : ajustez la valeur si nécessaire */
-        width:auto;
-        margin-right:10px;
-        vertical-align:middle;
+
+    /* Decorative Japanese Pattern Overlay (Seigaiha) */
+    body::before {
+        content: "";
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-image: url("data:image/svg+xml,%3Csvg width='100' height='20' viewBox='0 0 100 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M21.184 20c.357-.13.72-.264 1.088-.402l1.768-.661C33.64 15.347 39.647 14 45 14c5.354 0 11.36 1.347 20.96 4.937l1.769.661c.369.138.73.272 1.087.402H21.184zm-2.434 0H0V0h100v20h-18.75c-1.071-.371-2.187-.797-3.347-1.232l-1.769-.66c-9.046-3.37-14.162-4.108-21.134-4.108-6.971 0-12.088.738-21.134 4.108l-1.769.66c-1.16.435-2.276.861-3.347 1.232z' fill='%23e63946' fill-opacity='0.02' fill-rule='evenodd'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: -1;
     }
-    .card{ border: none; border-radius: var(--card-radius); box-shadow: var(--card-shadow); }
-    .card .card-img-top{ border-top-left-radius: var(--card-radius); border-top-right-radius: var(--card-radius); }
-    .btn-brand{ background: var(--brand); border-color: var(--brand); color:#fff; }
-    .btn-brand:hover{ background:#5930a6; border-color:#5930a6; color:#fff; }
-    .hero{
-        padding: 2rem 0;
-        margin-bottom: 1rem;
+
+    .navbar {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: rgba(253, 250, 251, 0.8) !important;
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--glass-border);
+        padding: 1rem 0;
     }
-    .flash-wrap .alert{ border-radius:10px; box-shadow: var(--card-shadow); }
-    .rating i{ color:#ffd166; } /* étoiles jaunes */
-    footer { padding: 2rem 0; color: #6b6b6b; font-size:0.9rem; margin-top:3rem; }
+
+    .navbar-brand { 
+        font-family: var(--font-header);
+        font-weight: 700; 
+        color: var(--accent-primary) !important; 
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        font-size: 1.5rem;
+    }
+
+    .navbar-brand img.brand-logo {
+        height: 38px;
+        width: auto;
+        margin-right: 12px;
+        filter: drop-shadow(0 0 5px rgba(230, 57, 70, 0.2));
+    }
+
+    .nav-link { 
+        color: var(--text-main) !important;
+        font-family: var(--font-header);
+        font-weight: 500; 
+        font-size: 0.95rem;
+        padding: 0.5rem 1.2rem !important;
+        transition: var(--transition);
+        position: relative;
+    }
+
+    .nav-link::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        width: 0;
+        height: 2px;
+        background: var(--accent-secondary);
+        transition: var(--transition);
+        transform: translateX(-50%);
+    }
+
+    .nav-link:hover::after {
+        width: 70%;
+    }
+
+    .nav-link:hover { 
+        color: var(--accent-secondary) !important;
+    }
+
+    .dropdown-menu {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+    }
+
+    .dropdown-item {
+        color: var(--text-main);
+        font-weight: 500;
+        padding: 0.7rem 1.5rem;
+        transition: var(--transition);
+    }
+
+    .dropdown-item:hover {
+        background: rgba(230, 57, 70, 0.05);
+        color: var(--accent-primary);
+    }
+
+    .card {
+        background: var(--bg-card);
+        backdrop-filter: blur(8px);
+        border: 1px solid var(--glass-border);
+        border-radius: 20px;
+        box-shadow: var(--card-shadow);
+        transition: var(--transition);
+        overflow: hidden;
+    }
+
+    .card:hover {
+        transform: translateY(-8px);
+        border-color: var(--accent-primary);
+        box-shadow: 0 20px 40px rgba(230, 57, 70, 0.1);
+    }
+
+    .card-img-wrapper {
+        border-bottom: 1px solid var(--glass-border);
+    }
+
+    .btn { 
+        border-radius: 10px; 
+        font-family: var(--font-header);
+        font-weight: 600; 
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 0.6rem 1.5rem;
+        transition: var(--transition); 
+    }
+
+    .btn-brand { 
+        background: var(--accent-primary);
+        border: 2px solid var(--accent-primary);
+        color: #fff;
+        box-shadow: 0 4px 15px rgba(230, 57, 70, 0.2);
+    }
+
+    .btn-brand:hover {
+        background: transparent;
+        color: var(--accent-primary);
+        box-shadow: 0 8px 25px rgba(230, 57, 70, 0.3);
+    }
+
+    .btn-outline-secondary {
+        border: 1px solid var(--glass-border);
+        background: #fff;
+        color: var(--text-muted);
+    }
+
+    .btn-outline-secondary:hover {
+        background: var(--accent-secondary);
+        color: #fff;
+        border-color: var(--accent-secondary);
+    }
+
+    .hero { 
+        background: rgba(255, 255, 255, 0.5);
+        backdrop-filter: blur(5px);
+        border-radius: 30px;
+        border: 1px solid var(--glass-border);
+        padding: 4rem 2rem;
+        margin-bottom: 3rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-title { 
+        font-family: var(--font-header);
+        font-weight: 800; 
+        font-size: 3rem;
+        color: var(--text-main);
+    }
+
+    .badge-genre { 
+        background: rgba(230, 57, 70, 0.08);
+        color: var(--accent-primary);
+        font-weight: 600; 
+        padding: 0.4rem 1rem; 
+        border-radius: 8px; 
+        font-size: 0.75rem;
+        border: 1px solid rgba(230, 57, 70, 0.1);
+    }
+
+    .rating i.fas { 
+        color: var(--accent-warm); 
+    }
+
+    .form-control, .form-select {
+        background: #fff;
+        border: 1px solid var(--glass-border);
+        color: var(--text-main);
+        border-radius: 12px;
+        padding: 0.75rem 1.2rem;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--accent-primary);
+        box-shadow: 0 0 0 4px rgba(230, 57, 70, 0.1);
+        outline: none;
+    }
+
+    .input-group-text {
+        background: #fff;
+        border: 1px solid var(--glass-border);
+        color: var(--text-muted);
+        border-radius: 12px;
+    }
+
+    .bg-light {
+        background-color: rgba(230, 57, 70, 0.02) !important;
+    }
+
+    footer { 
+        padding: 4rem 0; 
+        color: var(--text-muted); 
+        font-family: var(--font-header);
+        border-top: 1px solid var(--glass-border); 
+        background: #fff;
+        margin-top: auto;
+    }
+
+    .animate-fade-in { 
+        animation: fadeIn 0.5s ease-out; 
+    }
+    @keyframes fadeIn { 
+        from { opacity: 0; transform: translateY(20px); } 
+        to { opacity: 1; transform: translateY(0); } 
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: var(--bg-main);
+    }
+    ::-webkit-scrollbar-thumb {
+        background: #dfe6e9;
+        border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-primary);
+    }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+    <nav class="navbar navbar-expand-lg">
         <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('index') }}">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('main.index') }}">
                 <img src="{{ url_for('static', filename='Anakomi.png') }}" alt="Anakomi" class="brand-logo">
                 <span>Anakomi</span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain" style="border-color: var(--glass-border);">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navMain">
@@ -62,22 +291,33 @@
                             Tops
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('top10_users') }}">Top 10 Animes</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('videogame_top10_users') }}">Top 10 Jeux Vidéo</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('waifu_top5_users') }}">Top 10 Personnages</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('anime.top10_users') }}">Top 10 Animes</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('videogame.videogame_top10_users') }}">Top 10 Jeux Vidéo</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('waifu.waifu_top5_users') }}">Top 10 Personnages</a></li>
                         </ul>
                     </li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('videogames_list') }}">Jeux Vidéo</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('videogame.videogames_list') }}">Jeux Vidéo</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navTools" role="button" data-bs-toggle="dropdown">
+                            Outils
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('extra.random_picker') }}">Random Picker</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('extra.compare') }}">Comparaison A vs B</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('poll.list_polls') }}">Sondages</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('tournament.list_tournaments') }}">Tournois</a></li>
+                        </ul>
+                    </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navWaifus" role="button" data-bs-toggle="dropdown">
                             Personnages
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('waifus_list') }}">Tous les personnages</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('waifus_anime_filles') }}">Filles d'Animé</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('waifus_anime_garcons') }}">Garçons d'Animé</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('waifus_jeux_video_filles') }}">Filles de Jeux Vidéo</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('waifus_jeux_video_garcons') }}">Garçons de Jeux Vidéo</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('waifu.waifus_list') }}">Tous les personnages</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('waifu.waifus_anime_filles') }}">Filles d'Animé</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('waifu.waifus_anime_garcons') }}">Garçons d'Animé</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('waifu.waifus_jeux_video_filles') }}">Filles de Jeux Vidéo</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('waifu.waifus_jeux_video_garcons') }}">Garçons de Jeux Vidéo</a></li>
                         </ul>
                     </li>
                     {% if current_user %}
@@ -86,9 +326,10 @@
                                 Mes Tops
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ url_for('my_top10') }}">Mon Top 10</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('my_videogame_top10') }}">Mon Top 10 Jeux Vidéo</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('my_waifu_top5') }}">Mon Top 10 Personnage</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('extra.user_stats') }}">Mes Statistiques</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('anime.my_top10') }}">Mon Top 10</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('videogame.my_videogame_top10') }}">Mon Top 10 Jeux Vidéo</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('waifu.my_waifu_top5') }}">Mon Top 10 Personnage</a></li>
                             </ul>
                         </li>
                         <li class="nav-item dropdown">
@@ -96,17 +337,17 @@
                                 Ajouter
                             </a>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ url_for('add_anime') }}">Ajouter Anime</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('add_videogame') }}">Ajouter Jeu Vidéo</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('add_waifu') }}">Ajouter Personnage</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('anime.add_anime') }}">Ajouter Anime</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('videogame.add_videogame') }}">Ajouter Jeu Vidéo</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('waifu.add_waifu') }}">Ajouter Personnage</a></li>
                             </ul>
                         </li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Déconnexion ({{ current_user.username }})</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">Déconnexion ({{ current_user.username }})</a></li>
                     {% else %}
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Connexion</a></li>
-                        <li class="nav-item"><a class="nav-link" href="{{ url_for('register') }}">Inscription</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">Connexion</a></li>
+                        <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.register') }}">Inscription</a></li>
                     {% endif %}
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('contact') }}">Contact</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url_for('main.contact') }}">Contact</a></li>
                 </ul>
             </div>
         </div>
@@ -117,9 +358,10 @@
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 {% for message in messages %}
-                    <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    <div class="alert border-0 shadow-sm animate-fade-in" role="alert" style="background: #fff; border-left: 4px solid var(--accent-primary) !important; color: var(--text-main);">
+                        <i class="fas fa-info-circle me-2 text-danger"></i>
                         {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 {% endfor %}
             {% endif %}
@@ -129,12 +371,27 @@
         {% block content %}{% endblock %}
     </div>
 
-    <footer class="bg-white">
+    <footer>
         <div class="container text-center">
-            <small>© {{ (strftime("%Y") if False else "") }} Anakomi</small>
+            <div class="mb-3">
+                <img src="{{ url_for('static', filename='Anakomi.png') }}" alt="Anakomi" style="height: 30px; opacity: 0.3;">
+            </div>
+            <small class="text-uppercase tracking-widest" style="letter-spacing: 2px;">© {{ (strftime("%Y") if False else "") }} Anakomi // データの探索</small>
         </div>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {% if current_user %}
+    <script>
+    // Détection de la fermeture de la page ou départ du site
+    // Utilisation de visibilitychange ou pagehide pour plus de fiabilité
+    window.addEventListener('pagehide', function() {
+        // navigator.sendBeacon est idéal car il s'exécute de manière asynchrone 
+        // même après la fermeture de la fenêtre
+        navigator.sendBeacon("{{ url_for('auth.exit_signal') }}");
+    });
+    </script>
+    {% endif %}
 </body>
 </html>

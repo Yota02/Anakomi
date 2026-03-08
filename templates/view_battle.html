@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <h1 class="display-3 fw-bold mb-4">⚔️ {{ battle.title }}</h1>
+    <p class="lead mb-5 fs-4">Choisissez votre camp !</p>
+
+    <div class="row row-cols-1 row-cols-md-2 g-5 justify-content-center">
+        {% for participant in participants %}
+        <div class="col">
+            <div class="card h-100 shadow-lg participant-card">
+                {% if participant.image_url %}
+                    <img src="{{ participant.image_url }}" class="card-img-top" alt="{{ participant.name }}" style="height: 500px; object-fit: cover; border-radius: 15px 15px 0 0;">
+                {% else %}
+                    <div class="bg-dark text-white d-flex align-items-center justify-content-center" style="height: 500px; border-radius: 15px 15px 0 0;">
+                        <span>Pas d'image</span>
+                    </div>
+                {% endif %}
+                <div class="card-body p-4">
+                    <h2 class="card-title fw-bold mb-3">{{ participant.name }}</h2>
+                    <h3 class="display-5 text-brand fw-bold mb-4">{{ participant.votes }} VOTES</h3>
+                    
+                    <form action="{{ url_for('extra.battle_vote', participant_id=participant.id) }}" method="POST">
+                        <input type="hidden" name="battle_id" value="{{ battle.id }}">
+                        <button type="submit" class="btn btn-brand btn-lg w-100 py-3 fs-4" {% if battle.status == 'finished' %}disabled{% endif %}>
+                            <i class="fas fa-vote-yea me-2"></i> VOTER
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-5 pt-5">
+        <a href="{{ url_for('extra.battle_list') }}" class="btn btn-outline-brand btn-lg px-5">Retour aux Battles</a>
+    </div>
+</div>
+
+<style>
+    .text-brand { color: #ff4757; }
+    .btn-brand { background-color: #ff4757; color: white; }
+    .btn-brand:hover { background-color: #e84118; color: white; }
+    .participant-card { border-radius: 20px; border: none; overflow: hidden; transition: transform 0.3s; }
+    .participant-card:hover { transform: translateY(-10px); }
+    .btn-outline-brand { border-color: #ff4757; color: #ff4757; }
+    .btn-outline-brand:hover { background-color: #ff4757; color: white; }
+</style>
+{% endblock %}

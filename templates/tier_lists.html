@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <h1 class="display-4 fw-bold">📊 Tier Lists</h1>
+        {% if current_user %}
+        <a href="{{ url_for('extra.create_tier_list') }}" class="btn btn-brand btn-lg">Créer une Tier List</a>
+        {% endif %}
+    </div>
+
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for list in lists %}
+        <div class="col">
+            <div class="card h-100 shadow-sm tier-card">
+                <div class="card-body">
+                    <h5 class="card-title fw-bold">{{ list.title }}</h5>
+                    <p class="text-muted small">Catégorie: {{ list.category|capitalize }}</p>
+                    <p class="text-muted small">Par: {{ list.username }}</p>
+                    <a href="{{ url_for('extra.view_tier_list', id=list.id) }}" class="btn btn-outline-brand w-100 mt-3">Voir la Tier List</a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12 text-center py-5">
+            <h3 class="text-muted">Aucune tier list publique pour le moment.</h3>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+    .tier-card { border-radius: 15px; border-left: 5px solid #ff4757; transition: transform 0.2s; }
+    .tier-card:hover { transform: scale(1.02); }
+    .btn-brand { background-color: #ff4757; color: white; }
+    .btn-brand:hover { background-color: #e84118; color: white; }
+    .btn-outline-brand { border-color: #ff4757; color: #ff4757; }
+    .btn-outline-brand:hover { background-color: #ff4757; color: white; }
+</style>
+{% endblock %}

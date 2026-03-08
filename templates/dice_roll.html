@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <h1 class="mb-4">🎲 Dice Roll</h1>
+    <p class="lead">Le dé a choisi le genre : <span class="badge bg-brand">{{ genre }}</span></p>
+
+    <div class="row row-cols-1 row-cols-md-3 g-4 mt-4">
+        {% for anime in animes %}
+        <div class="col">
+            <div class="card h-100 shadow-sm anime-card">
+                {% if anime.cover_url %}
+                    <img src="{{ anime.cover_url }}" class="card-img-top" alt="{{ anime.title }}" style="height: 250px; object-fit: cover;">
+                {% else %}
+                    <div class="bg-dark text-white d-flex align-items-center justify-content-center" style="height: 250px;">
+                        <span>Pas d'image</span>
+                    </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ anime.title }}</h5>
+                    <p class="card-text text-muted small">{{ anime.year }}</p>
+                    <a href="{{ url_for('anime.anime_detail', id=anime.id) }}" class="btn btn-sm btn-brand">Voir</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-5">
+        <a href="{{ url_for('extra.dice_roll') }}" class="btn btn-lg btn-outline-brand">Lancer à nouveau le dé</a>
+    </div>
+</div>
+
+<style>
+    .bg-brand { background-color: #ff4757; }
+    .btn-brand { background-color: #ff4757; color: white; }
+    .btn-brand:hover { background-color: #e84118; color: white; }
+    .btn-outline-brand { border-color: #ff4757; color: #ff4757; }
+    .btn-outline-brand:hover { background-color: #ff4757; color: white; }
+    .anime-card { border-radius: 10px; overflow: hidden; }
+</style>
+{% endblock %}

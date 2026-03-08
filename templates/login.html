@@ -1,31 +1,45 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card p-4">
-            <h2 class="mb-3">Connexion</h2>
+<div class="row justify-content-center animate-fade-in py-5">
+    <div class="col-md-5">
+        <div class="card p-5">
+            <div class="text-center mb-5">
+                <img src="{{ url_for('static', filename='Anakomi.png') }}" alt="Anakomi" style="height: 60px; filter: drop-shadow(0 0 10px var(--accent-primary));" class="mb-3">
+                <h2 class="fw-bold" style="font-family: var(--font-header); letter-spacing: 2px;">CONNEXION // ログイン</h2>
+                <p class="text-muted small">Accédez à votre espace Anakomi</p>
+            </div>
+            
             <form method="POST">
-                <div class="mb-3">
-                    <label for="username" class="form-label">Nom d'utilisateur</label>
+                <div class="mb-4">
+                    <label for="username" class="form-label text-muted small text-uppercase fw-bold">Nom d'utilisateur</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-user"></i></span>
-                        <input type="text" class="form-control" id="username" name="username" required>
+                        <input type="text" class="form-control" id="username" name="username" placeholder="votre_pseudo" required>
                     </div>
                 </div>
-                <div class="mb-3">
-                    <label for="password" class="form-label">Mot de passe</label>
+                <div class="mb-4">
+                    <label for="password" class="form-label text-muted small text-uppercase fw-bold">Mot de passe</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                        <input type="password" class="form-control" id="password" name="password" required>
+                        <input type="password" class="form-control" id="password" name="password" placeholder="••••••••" required>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-brand w-100">Se connecter</button>
+                
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="remember" style="background-color: #fff; border-color: var(--glass-border);">
+                        <label class="form-check-label small text-muted" for="remember">Se souvenir de moi</label>
+                    </div>
+                    <a href="{{ url_for('auth.reset_password_request') }}" class="small" style="color: var(--accent-secondary);">Oublié ?</a>
+                </div>
+
+                <button type="submit" class="btn btn-brand w-100 py-3">Entrer dans le système</button>
             </form>
-            <div class="mt-3 text-center">
-                <a href="{{ url_for('reset_password_request') }}">Mot de passe oublié ?</a>
+
+            <div class="mt-5 text-center pt-4" style="border-top: 1px solid var(--glass-border);">
+                <p class="mb-0 text-muted">Pas encore membre ? <a href="{{ url_for('auth.register') }}" class="fw-bold" style="color: var(--accent-primary);">Créer un compte</a></p>
             </div>
-            <p class="mt-3 text-center">Pas de compte ? <a href="{{ url_for('register') }}">S'inscrire</a></p>
         </div>
     </div>
 </div>

@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <h1 class="mb-4">🎵 Blind Test OP/ED</h1>
+    <p class="lead">Écoutez cet opening et devinez de quel anime il provient !</p>
+
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-8">
+            <div class="card shadow-lg p-3">
+                <div class="ratio ratio-16x9">
+                    <iframe src="https://www.youtube.com/embed/{{ yt_id }}?autoplay=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+                </div>
+                <div class="card-body mt-4">
+                    <div class="row row-cols-1 row-cols-md-2 g-3">
+                        {% for choice in choices %}
+                        <div class="col">
+                            <button class="btn btn-outline-brand w-100 py-3" data-id="{{ choice.id }}" onclick="checkAnswer(this)">{{ choice.title }}</button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="result" class="mt-5 d-none">
+        <h2 id="result-text"></h2>
+        <div class="mt-4">
+            <a href="{{ url_for('extra.blind_test') }}" class="btn btn-brand">Nouveau blind test</a>
+            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">Retour</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    const correctId = {{ anime.id }};
+    let answered = false;
+
+    function checkAnswer(element) {
+        if (answered) return;
+        answered = true;
+
+        const selectedId = parseInt(element.getAttribute('data-id'));
+        const resultDiv = document.getElementById('result');
+        const resultText = document.getElementById('result-text');
+
+        if (selectedId === correctId) {
+            element.classList.remove('btn-outline-brand');
+            element.classList.add('btn-success');
+            resultText.innerText = "✅ Félicitations ! C'était bien '{{ anime.title }}'.";
+            resultText.className = "text-success";
+        } else {
+            element.classList.remove('btn-outline-brand');
+            element.classList.add('btn-danger');
+            // Highlight correct one
+            document.querySelector(`[data-id="${correctId}"]`).classList.remove('btn-outline-brand');
+            document.querySelector(`[data-id="${correctId}"]`).classList.add('btn-success');
+            resultText.innerText = "❌ Dommage ! La réponse était '{{ anime.title }}'.";
+            resultText.className = "text-danger";
+        }
+
+        resultDiv.classList.remove('d-none');
+    }
+</script>
+
+<style>
+    .bg-brand { background-color: #ff4757; }
+    .btn-brand { background-color: #ff4757; color: white; }
+    .btn-brand:hover { background-color: #e84118; color: white; }
+    .btn-outline-brand { border-color: #ff4757; color: #ff4757; }
+    .btn-outline-brand:hover { background-color: #ff4757; color: white; }
+</style>
+{% endblock %}

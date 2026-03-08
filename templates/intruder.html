@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <h1 class="mb-4">🕵️ Trouver l'intrus</h1>
+    <p class="lead">Un de ces animes n'est pas du genre <span class="badge bg-brand">{{ main_genre }}</span>. Saurez-vous le trouver ?</p>
+
+    <div class="row row-cols-1 row-cols-md-4 g-4 mt-4" id="game-board">
+        {% for anime in choices %}
+        <div class="col">
+            <div class="card h-100 shadow-sm choice-card" data-id="{{ anime.id }}" onclick="checkAnswer(this)">
+                {% if anime.cover_url %}
+                    <img src="{{ anime.cover_url }}" class="card-img-top" alt="{{ anime.title }}" style="height: 250px; object-fit: cover;">
+                {% else %}
+                    <div class="bg-dark text-white d-flex align-items-center justify-content-center" style="height: 250px;">
+                        <span>Pas d'image</span>
+                    </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ anime.title }}</h5>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div id="result" class="mt-5 d-none">
+        <h2 id="result-text"></h2>
+        <div class="mt-4">
+            <a href="{{ url_for('extra.intruder') }}" class="btn btn-brand">Nouvelle partie</a>
+            <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">Retour</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    const intruderId = {{ intruder_id }};
+    let answered = false;
+
+    function checkAnswer(element) {
+        if (answered) return;
+        answered = true;
+
+        const selectedId = parseInt(element.getAttribute('data-id'));
+        const resultDiv = document.getElementById('result');
+        const resultText = document.getElementById('result-text');
+
+        if (selectedId === intruderId) {
+            element.classList.add('bg-success', 'text-white');
+            resultText.innerText = "✅ Bravo ! C'était bien l'intrus.";
+            resultText.className = "text-success";
+        } else {
+            element.classList.add('bg-danger', 'text-white');
+            // Show the correct one
+            document.querySelector(`[data-id="${intruderId}"]`).classList.add('bg-success', 'text-white');
+            resultText.innerText = "❌ Dommage ! Ce n'était pas celui-là.";
+            resultText.className = "text-danger";
+        }
+
+        resultDiv.classList.remove('d-none');
+    }
+</script>
+
+<style>
+    .choice-card { cursor: pointer; transition: transform 0.2s; border-radius: 10px; overflow: hidden; }
+    .choice-card:hover { transform: scale(1.05); }
+    .bg-brand { background-color: #ff4757; }
+    .btn-brand { background-color: #ff4757; color: white; }
+    .btn-brand:hover { background-color: #e84118; color: white; }
+</style>
+{% endblock %}

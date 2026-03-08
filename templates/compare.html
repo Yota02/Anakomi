@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10 text-center">
+        <h1 class="hero-title mb-4">Comparaison A vs B</h1>
+        <p class="text-muted mb-5">Lequel préférez-vous ?</p>
+
+        <div class="mb-5">
+            <a href="{{ url_for('extra.compare', type='anime') }}" class="btn btn-brand mx-2 {% if item_type == 'anime' %}active{% endif %}">Animes</a>
+            <a href="{{ url_for('extra.compare', type='videogame') }}" class="btn btn-brand mx-2 {% if item_type == 'videogame' %}active{% endif %}">Jeux Vidéo</a>
+        </div>
+
+        <div class="row align-items-center">
+            <!-- Item 1 -->
+            <div class="col-md-5">
+                <div class="card animate-fade-in mb-4">
+                    <div class="card-img-wrapper">
+                        <img src="{{ item1.cover_url or url_for('static', filename='Anakomi.png') }}" class="card-img-top" alt="{{ item1.title }}" style="height: 400px; object-fit: cover;">
+                    </div>
+                    <div class="card-body">
+                        <h2 class="h4 card-title">{{ item1.title }}</h2>
+                        <form action="{{ url_for('extra.compare_vote') }}" method="POST">
+                            <input type="hidden" name="item_type" value="{{ item_type }}">
+                            <input type="hidden" name="winner_id" value="{{ item1.id }}">
+                            <input type="hidden" name="loser_id" value="{{ item2.id }}">
+                            <button type="submit" class="btn btn-brand w-100 btn-lg">Choisir Celui-ci</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-2 mb-4">
+                <h2 class="hero-title" style="font-size: 4rem; color: var(--accent-secondary); opacity: 0.5;">VS</h2>
+            </div>
+
+            <!-- Item 2 -->
+            <div class="col-md-5">
+                <div class="card animate-fade-in mb-4">
+                    <div class="card-img-wrapper">
+                        <img src="{{ item2.cover_url or url_for('static', filename='Anakomi.png') }}" class="card-img-top" alt="{{ item2.title }}" style="height: 400px; object-fit: cover;">
+                    </div>
+                    <div class="card-body">
+                        <h2 class="h4 card-title">{{ item2.title }}</h2>
+                        <form action="{{ url_for('extra.compare_vote') }}" method="POST">
+                            <input type="hidden" name="item_type" value="{{ item_type }}">
+                            <input type="hidden" name="winner_id" value="{{ item2.id }}">
+                            <input type="hidden" name="loser_id" value="{{ item1.id }}">
+                            <button type="submit" class="btn btn-brand w-100 btn-lg">Choisir Celui-ci</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <a href="{{ url_for('extra.compare', type=item_type) }}" class="btn btn-outline-secondary">
+                <i class="fas fa-random me-2"></i>Passer / Autre choix
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="hero-title text-center mb-5">Mes Statistiques Personnelles</h1>
+
+    <!-- Cartes de résumé -->
+    <div class="row g-4 mb-5 animate-fade-in">
+        <div class="col-md-3">
+            <div class="card text-center p-3 shadow-sm">
+                <div class="h3 mb-0 text-danger fw-bold">{{ counts.anime_count }}</div>
+                <div class="text-muted small text-uppercase">Animes Ajoutés</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center p-3 shadow-sm">
+                <div class="h3 mb-0 text-primary fw-bold">{{ counts.vg_count }}</div>
+                <div class="text-muted small text-uppercase">Jeux Vidéo Ajoutés</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center p-3 shadow-sm">
+                <div class="h3 mb-0 text-info fw-bold">{{ counts.waifu_count }}</div>
+                <div class="text-muted small text-uppercase">Personnages Ajoutés</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center p-3 shadow-sm">
+                <div class="h3 mb-0 text-warning fw-bold">{{ counts.total_reviews }}</div>
+                <div class="text-muted small text-uppercase">Avis Publiés</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Distribution des genres -->
+        <div class="col-md-6 mb-4">
+            <div class="card p-4 shadow-sm h-100">
+                <h5 class="fw-bold mb-4" style="font-family: var(--font-header);">Genres d'Animes Ajoutés</h5>
+                <canvas id="genreChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Distribution des notes -->
+        <div class="col-md-6 mb-4">
+            <div class="card p-4 shadow-sm h-100">
+                <h5 class="fw-bold mb-4" style="font-family: var(--font-header);">Distribution des Notes</h5>
+                <canvas id="ratingChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Évolution de l'activité -->
+        <div class="col-12 mb-4">
+            <div class="card p-4 shadow-sm">
+                <h5 class="fw-bold mb-4" style="font-family: var(--font-header);">Activité Totale (Items ajoutés)</h5>
+                <canvas id="activityChart" style="max-height: 400px;"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inclure Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Config pour les graphiques
+    const primaryColor = '#e63946';
+    const secondaryColor = '#7209b7';
+    const warmColor = '#f4a261';
+
+    // 1. Graphique Genres
+    const genreLabels = [{% for item in genre_data %}"{{ item.genre }}",{% endfor %}];
+    const genreValues = [{% for item in genre_data %}{{ item.count }},{% endfor %}];
+    
+    new Chart(document.getElementById('genreChart'), {
+        type: 'pie',
+        data: {
+            labels: genreLabels,
+            datasets: [{
+                data: genreValues,
+                backgroundColor: [
+                    '#e63946', '#7209b7', '#f4a261', '#457b9d', '#1d3557', 
+                    '#a8dadc', '#ffb703', '#fb8500', '#2a9d8f'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'right' }
+            }
+        }
+    });
+
+    // 2. Graphique Notes
+    const ratingLabels = [{% for item in rating_data %}"Note {{ item.rating }}",{% endfor %}];
+    const ratingValues = [{% for item in rating_data %}{{ item.count }},{% endfor %}];
+
+    new Chart(document.getElementById('ratingChart'), {
+        type: 'bar',
+        data: {
+            labels: ratingLabels,
+            datasets: [{
+                label: 'Nombre d\'avis',
+                data: ratingValues,
+                backgroundColor: warmColor
+            }]
+        },
+        options: {
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+        }
+    });
+
+    // 3. Graphique Activité
+    const activityLabels = [{% for item in activity_data %}"{{ item.month }}",{% endfor %}];
+    const activityValues = [{% for item in activity_data %}{{ item.count }},{% endfor %}];
+
+    new Chart(document.getElementById('activityChart'), {
+        type: 'line',
+        data: {
+            labels: activityLabels,
+            datasets: [{
+                label: 'Items ajoutés',
+                data: activityValues,
+                borderColor: secondaryColor,
+                backgroundColor: 'rgba(114, 9, 183, 0.1)',
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+            }
+        }
+    });
+</script>
+{% endblock %}

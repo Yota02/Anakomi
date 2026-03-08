@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-5">
+        <h1 class="display-4 fw-bold">📊 {{ t_list.title }}</h1>
+        <p class="text-muted fs-5 mb-0">Par {{ t_list.username }} · Catégorie: {{ t_list.category|capitalize }}</p>
+    </div>
+
+    <div class="tier-board shadow-lg p-3 rounded bg-dark">
+        {% for tier in ['S', 'A', 'B', 'C', 'D', 'F'] %}
+        <div class="tier-row d-flex mb-2" id="tier-{{ tier }}">
+            <div class="tier-label fs-3 fw-bold d-flex align-items-center justify-content-center text-dark" style="background-color: {{ {'S':'#ff7f7f','A':'#ffbf7f','B':'#ffff7f','C':'#7fff7f','D':'#7fbfff','F':'#7f7fff'}[tier] }}; min-width: 100px;">
+                {{ tier }}
+            </div>
+            <div class="tier-content d-flex flex-wrap p-2 gap-2 flex-grow-1" style="min-height: 120px; background-color: #1a1a1a;">
+                {% for item in items if item.tier == tier %}
+                <div class="tier-item position-relative" data-id="{{ item.id }}" title="{{ item.name }}">
+                    {% if item.image_url %}
+                        <img src="{{ item.image_url }}" alt="{{ item.name }}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 5px;">
+                    {% else %}
+                        <div class="bg-secondary d-flex align-items-center justify-content-center text-white" style="width: 100px; height: 100px; border-radius: 5px;">
+                            <span class="small">{{ item.name[:10] }}</span>
+                        </div>
+                    {% endif %}
+                    
+                    {% if current_user and current_user.username == t_list.username %}
+                    <div class="tier-selector position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center opacity-0 hover-opacity-1" style="background: rgba(0,0,0,0.7); transition: opacity 0.2s;">
+                        <select class="form-select form-select-sm w-75" onchange="changeTier({{ item.id }}, this.value)">
+                            {% for t in ['S', 'A', 'B', 'C', 'D', 'F'] %}
+                            <option value="{{ t }}" {% if t == tier %}selected{% endif %}>{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-5 pt-5 text-center">
+        <a href="{{ url_for('extra.tier_lists') }}" class="btn btn-outline-brand px-5">Retour aux Tier Lists</a>
+    </div>
+</div>
+
+<script>
+function changeTier(itemId, newTier) {
+    const formData = new FormData();
+    formData.append('id', itemId);
+    formData.append('tier', newTier);
+
+    fetch("{{ url_for('extra.update_tier_item') }}", {
+        method: "POST",
+        body: formData
+    }).then(response => {
+        if (response.ok) {
+            window.location.reload();
+        }
+    });
+}
+</script>
+
+<style>
+    .tier-item:hover .tier-selector { opacity: 1 !important; }
+    .btn-outline-brand { border-color: #ff4757; color: #ff4757; }
+    .btn-outline-brand:hover { background-color: #ff4757; color: white; }
+    .tier-board { border: 2px solid #333; }
+</style>
+{% endblock %}

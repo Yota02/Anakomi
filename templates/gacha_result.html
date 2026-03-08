@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5 text-center animate-fade-in">
+    <h1 class="mb-5 display-4">✨ VOUS AVEZ OBTENU...</h1>
+
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card gacha-card shadow-lg p-3">
+                {% if waifu.image_url %}
+                    <img src="{{ waifu.image_url }}" class="card-img-top" alt="{{ waifu.name }}" style="height: 500px; object-fit: cover; border-radius: 15px;">
+                {% else %}
+                    <div class="bg-dark text-white d-flex align-items-center justify-content-center" style="height: 500px; border-radius: 15px;">
+                        <span>Pas d'image</span>
+                    </div>
+                {% endif %}
+                <div class="card-body">
+                    <h1 class="card-title fw-bold">{{ waifu.name }}</h1>
+                    <p class="badge bg-brand fs-5 mt-2">{{ waifu.gender }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-5">
+        <a href="{{ url_for('extra.gacha') }}" class="btn btn-brand btn-lg px-5">Encore !</a>
+        <a href="{{ url_for('extra.collection') }}" class="btn btn-outline-brand btn-lg px-5">Ma Collection</a>
+    </div>
+</div>
+
+<style>
+    .gacha-card {
+        border: 4px solid gold;
+        border-radius: 20px;
+        background: linear-gradient(45deg, #fff, #f8f9fa);
+        animation: shine 2s infinite linear;
+    }
+    @keyframes shine {
+        0% { box-shadow: 0 0 10px gold; }
+        50% { box-shadow: 0 0 30px #ff4757; }
+        100% { box-shadow: 0 0 10px gold; }
+    }
+    .bg-brand { background-color: #ff4757; }
+    .btn-brand { background-color: #ff4757; color: white; }
+    .btn-brand:hover { background-color: #e84118; color: white; }
+    .btn-outline-brand { border-color: #ff4757; color: #ff4757; }
+    .btn-outline-brand:hover { background-color: #ff4757; color: white; }
+</style>
+{% endblock %}

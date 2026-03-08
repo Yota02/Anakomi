@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card p-5 shadow-lg">
+                <h1 class="mb-4">Créer une Tier List</h1>
+                <form method="POST">
+                    <div class="mb-4">
+                        <label for="title" class="form-label">Titre de la Tier List</label>
+                        <input type="text" class="form-control" id="title" name="title" required placeholder="Ex: Top 20 Animes 2024">
+                    </div>
+                    <div class="mb-5">
+                        <label for="category" class="form-label">Catégorie</label>
+                        <select class="form-select" id="category" name="category" required>
+                            <option value="anime">Animes</option>
+                            <option value="videogame">Jeux Vidéo</option>
+                            <option value="waifu">Personnages</option>
+                        </select>
+                        <div class="form-text mt-2">Nous ajouterons 20 éléments aléatoires de cette catégorie.</div>
+                    </div>
+                    <button type="submit" class="btn btn-brand btn-lg w-100">Générer la Tier List</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .btn-brand { background-color: #ff4757; color: white; }
+    .btn-brand:hover { background-color: #e84118; color: white; }
+</style>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container py-5 text-center">
+    <h1 class="mb-4">🎰 Waifu/Husbando Gacha</h1>
+    <p class="lead">Utilisez vos points pour collectionner des personnages rares !</p>
+
+    <div class="row justify-content-center mt-5">
+        <div class="col-md-6">
+            <div class="card shadow-lg p-5">
+                <div class="mb-5">
+                    <h2 class="text-muted small">VOS POINTS</h2>
+                    <div class="display-3 fw-bold text-brand">{{ points }}</div>
+                </div>
+
+                <form action="{{ url_for('extra.gacha_roll') }}" method="POST">
+                    <button type="submit" class="btn btn-brand btn-lg w-100 py-3 mb-4" {% if points < 10 %}disabled{% endif %}>
+                        <i class="fas fa-dice me-2"></i> TIRER UNE CARTE (10 pts)
+                    </button>
+                </form>
+
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{{ url_for('extra.collection') }}" class="btn btn-outline-brand px-4">Ma Collection</a>
+                    <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary px-4">Gagner des points</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .text-brand { color: #ff4757; }
+    .btn-brand { background-color: #ff4757; color: white; }
+    .btn-brand:hover { background-color: #e84118; color: white; }
+    .btn-outline-brand { border-color: #ff4757; color: #ff4757; }
+    .btn-outline-brand:hover { background-color: #ff4757; color: white; }
+</style>
+{% endblock %}

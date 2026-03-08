@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="hero-title">Sondages</h1>
+            {% if current_user %}
+                <a href="{{ url_for('poll.create_poll') }}" class="btn btn-brand">Créer un sondage</a>
+            {% endif %}
+        </div>
+
+        <div class="row">
+            {% for poll in polls %}
+                <div class="col-md-6 mb-4">
+                    <div class="card animate-fade-in h-100">
+                        <div class="card-body">
+                            <h2 class="h5 card-title">{{ poll.question }}</h2>
+                            <p class="text-muted small">Créé par {{ poll.creator or 'Anonyme' }} le {{ poll.created_at.strftime('%d/%m/%Y') }}</p>
+                            <a href="{{ url_for('poll.poll_detail', poll_id=poll.id) }}" class="btn btn-outline-secondary w-100">Voir / Voter</a>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="col-12 text-center py-5">
+                    <p class="text-muted">Aucun sondage pour le moment.</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
