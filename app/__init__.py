@@ -46,3 +46,5 @@ def create_app():
         return dict(current_user=get_current_user(), current_year=datetime.utcnow().year)
     
     return app
+
+app = create_app()
