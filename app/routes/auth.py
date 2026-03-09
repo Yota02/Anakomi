@@ -2,9 +2,10 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.database import fetch_one, execute_query
 from app.models import get_user_table_info
-from app.utils import generate_reset_token, verify_reset_token
+from app.utils import generate_reset_code
 from app.decorators import login_required
 from app.services import send_reset_email, dump_and_send_to_discord
+import time
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -55,6 +56,7 @@ def login():
         
         if user and check_password_hash(user.get('password_hash', ''), password):
             session['user_id'] = user['id']
+            session['dump_done'] = False
             flash('Connexion réussie')
             return redirect(url_for('main.index'))
         else:
@@ -91,33 +93,57 @@ def reset_password_request():
         tbl = info['table']
         user = fetch_one(f"SELECT id, username, email FROM {tbl} WHERE email = %s", (email,))
         if user:
-            token = generate_reset_token(user['id'])
-            send_reset_email(user['email'], token, user.get('username') or '')
+            code = generate_reset_code()
+            session['reset_code'] = code
+            session['reset_code_time'] = time.time()
+            session['reset_user_id'] = user['id']
+            send_reset_email(user['email'], code, user.get('username') or '')
         
-        flash("Si un compte existe pour cet email, un lien de réinitialisation a été envoyé.")
-        return redirect(url_for('auth.login'))
+        flash("Si un compte existe pour cet email, un code de réinitialisation a été envoyé.")
+        return redirect(url_for('auth.reset_password'))
     return render_template('password_reset_request.html')
 
-@auth_bp.route('/reset_password/<token>', methods=['GET', 'POST'])
-def reset_password(token):
-    user_id = verify_reset_token(token)
-    if not user_id:
-        flash("Le lien de réinitialisation est invalide ou expiré.")
-        return redirect(url_for('auth.reset_password_request'))
-
+@auth_bp.route('/reset_password', methods=['GET', 'POST'])
+def reset_password():
     if request.method == 'POST':
+        code = request.form.get('code', '').strip()
         password = request.form.get('password', '').strip()
         password2 = request.form.get('password2', '').strip()
+        
+        stored_code = session.get('reset_code')
+        stored_time = session.get('reset_code_time')
+        user_id = session.get('reset_user_id')
+        
+        if not stored_code or not stored_time or not user_id:
+            flash("Délai expiré. Veuillez refaire une demande de réinitialisation.")
+            return redirect(url_for('auth.reset_password_request'))
+        
+        if time.time() - stored_time > 600:
+            session.pop('reset_code', None)
+            session.pop('reset_code_time', None)
+            session.pop('reset_user_id', None)
+            flash("Le code a expiré (10 minutes). Veuillez refaire une demande.")
+            return redirect(url_for('auth.reset_password_request'))
+        
+        if code != stored_code:
+            flash("Code incorrect.")
+            return redirect(url_for('auth.reset_password'))
+        
         if not password or password != password2:
             flash("Les mots de passe doivent être identiques et non vides.")
-            return redirect(url_for('auth.reset_password', token=token))
+            return redirect(url_for('auth.reset_password'))
 
         password_hash = generate_password_hash(password)
         info = get_user_table_info()
         tbl = info['table']
         pwdcol = info['password_col']
         execute_query(f"UPDATE {tbl} SET {pwdcol} = %s WHERE id = %s", (password_hash, user_id))
+        
+        session.pop('reset_code', None)
+        session.pop('reset_code_time', None)
+        session.pop('reset_user_id', None)
+        
         flash("Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter.")
         return redirect(url_for('auth.login'))
 
-    return render_template('password_reset.html', token=token)
+    return render_template('password_reset.html')

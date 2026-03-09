@@ -11,6 +11,13 @@ def get_current_user():
 def _get_serializer():
     return URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
 
+import secrets
+import time
+
+def generate_reset_code():
+    """Génère un code numérique à 6 chiffres."""
+    return ''.join([str(secrets.randbelow(10)) for _ in range(6)])
+
 def generate_reset_token(user_id):
     s = _get_serializer()
     return s.dumps({'user_id': user_id})

