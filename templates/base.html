@@ -287,6 +287,15 @@
             <div class="collapse navbar-collapse" id="navMain">
                 <ul class="navbar-nav ms-auto align-items-center">
                     <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navListes" role="button" data-bs-toggle="dropdown">
+                            Listes
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('anime.animes_list') }}">Animes</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('videogame.videogames_list') }}">Jeux Vidéo</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" id="navDropdown" role="button" data-bs-toggle="dropdown">
                             Tops
                         </a>
@@ -296,16 +305,28 @@
                             <li><a class="dropdown-item" href="{{ url_for('waifu.waifu_top5_users') }}">Top 10 Personnages</a></li>
                         </ul>
                     </li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url_for('videogame.videogames_list') }}">Jeux Vidéo</a></li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navTools" role="button" data-bs-toggle="dropdown">
-                            Outils
+                        <a class="nav-link dropdown-toggle" href="#" id="navJeux" role="button" data-bs-toggle="dropdown">
+                            Jeux
                         </a>
                         <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('extra.blind_test') }}">Blind Test</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('extra.roulette_russe') }}">Roulette Russe</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('extra.dice_roll') }}">Lancer de dés</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('extra.intruder') }}">Intruder</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('extra.quiz') }}">Quiz</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('extra.ship_generator') }}">Ship Generator</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('extra.guess_rating') }}">Deviner la note</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('extra.otaku_age') }}">Âge Otaku</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('extra.gacha') }}">Gacha</a></li>
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('extra.random_picker') }}">Random Picker</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('extra.compare') }}">Comparaison A vs B</a></li>
+                            <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ url_for('poll.list_polls') }}">Sondages</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('tournament.list_tournaments') }}">Tournois</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('extra.tier_lists') }}">Tier Lists</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('extra.battle_list') }}">Battles</a></li>
                         </ul>
                     </li>
                     <li class="nav-item dropdown">

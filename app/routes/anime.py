@@ -6,6 +6,48 @@ from app.decorators import login_required
 
 anime_bp = Blueprint('anime', __name__)
 
+@anime_bp.route('/animes')
+def animes_list():
+    q = (request.args.get('q') or '').strip()
+    sort = request.args.get('sort', 'recent')
+
+    _allowed_sorts = {
+        'recent': 'a.created_at DESC, a.id DESC',
+        'title_asc': 'LOWER(a.title) ASC, a.id DESC',
+        'title_desc': 'LOWER(a.title) DESC, a.id DESC',
+        'rating_desc': 'AVG(r.rating) DESC, a.id DESC'
+    }
+    order_clause = _allowed_sorts.get(sort, _allowed_sorts['recent'])
+
+    try:
+        if q:
+            pattern = f"%{q}%"
+            animes = fetch_all(f"""
+                SELECT a.*, 
+                       COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                       COUNT(r.id) AS review_count
+                FROM anime a
+                LEFT JOIN review r ON r.anime_id = a.id
+                WHERE a.title ILIKE %s OR a.description ILIKE %s
+                GROUP BY a.id
+                ORDER BY {order_clause}
+            """, (pattern, pattern))
+        else:
+            animes = fetch_all(f"""
+                SELECT a.*, 
+                       COALESCE(ROUND(AVG(r.rating),1), 0) AS avg_rating,
+                       COUNT(r.id) AS review_count
+                FROM anime a
+                LEFT JOIN review r ON r.anime_id = a.id
+                GROUP BY a.id
+                ORDER BY {order_clause}
+            """)
+
+        return render_template('animes_list.html', animes=animes, q=q, sort=sort)
+    except Exception as e:
+        flash(f'Erreur: {str(e)}')
+        return redirect(url_for('main.index'))
+
 @anime_bp.route('/add_anime', methods=['GET', 'POST'])
 @login_required
 def add_anime():
