@@ -269,6 +269,7 @@ def ensure_tables():
         id INT AUTO_INCREMENT PRIMARY KEY,
         title VARCHAR(255) NOT NULL,
         item_type ENUM('anime', 'videogame', 'waifu') NOT NULL,
+        tournament_type ENUM('bracket', 'poule') DEFAULT 'bracket',
         share_code VARCHAR(10) UNIQUE NOT NULL,
         created_by INT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -281,6 +282,7 @@ def ensure_tables():
         tournament_id INT NOT NULL,
         item_id INT NOT NULL,
         initial_position TINYINT NOT NULL,
+        group_id CHAR(1) DEFAULT NULL, -- A, B, C, D...
         FOREIGN KEY (tournament_id) REFERENCES tournament(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     """

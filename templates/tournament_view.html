@@ -18,11 +18,14 @@
                         Gestion du Tournoi
                     </button>
                     <ul class="dropdown-menu">
-                        {% for r in [1, 2, 3] %}
+                        {% set start_round = 0 if tournament.tournament_type == 'poule' else 1 %}
+                        {% for r in range(start_round, total_rounds + 1) %}
                             <li>
                                 <form action="{{ url_for('tournament.advance_round', code=tournament.share_code) }}" method="POST">
                                     <input type="hidden" name="round" value="{{ r }}">
-                                    <button type="submit" class="dropdown-item">Clore Round {{ r }}</button>
+                                    <button type="submit" class="dropdown-item">
+                                        {% if r == 0 %}Clore Phase de Poules{% else %}Clore Round {{ r }}{% endif %}
+                                    </button>
                                 </form>
                             </li>
                         {% endfor %}
@@ -31,6 +34,160 @@
             {% endif %}
         </div>
     </div>
+
+    {% set active_round = none %}
+    {% set pending_match = none %}
+    {% set round_total_matches = 0 %}
+    {% set round_voted_matches = 0 %}
+
+    {# Find the current active round (the first one that isn't fully decided yet) #}
+    {% for round_num, round_matches in rounds.items() %}
+        {% set round_finished = true %}
+        {% for m in round_matches %}
+            {% if not m.winner_id %}
+                {% set round_finished = false %}
+            {% endif %}
+        {% endfor %}
+        
+        {% if not round_finished and not active_round %}
+            {% set active_round = round_num %}
+            {% set round_total_matches = round_matches|length %}
+            {% for m in round_matches %}
+                {% if m.id in user_votes or m.winner_id %}
+                    {% set round_voted_matches = round_voted_matches + 1 %}
+                {% endif %}
+                {% if not m.winner_id and m.id not in user_votes and not pending_match %}
+                    {% set pending_match = m %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+    {% endfor %}
+
+    {% if pending_match %}
+    <!-- Focused Duel Mode -->
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-10 col-lg-8">
+            <div class="card shadow-lg border-0 overflow-hidden" style="border-radius: 20px;">
+                <div class="card-header bg-dark text-white p-3 border-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="m-0 fw-bold">
+                            <i class="fas fa-swords me-2 text-brand"></i>{{ get_label(active_round, total_rounds) }}
+                        </h5>
+                        <span class="badge bg-brand">Match {{ round_voted_matches + 1 }} / {{ round_total_matches }}</span>
+                    </div>
+                </div>
+                <div class="progress" style="height: 5px; border-radius: 0;">
+                    <div class="progress-bar bg-brand" role="progressbar" style="width: {{ (round_voted_matches / round_total_matches) * 100 }}%"></div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="row g-0 align-items-stretch">
+                        <!-- Participant 1 -->
+                        <div class="col-md-5 p-4 d-flex flex-column align-items-center justify-content-center duel-side">
+                            <div class="participant-preview mb-4">
+                                <img src="{{ pending_match.p1_details.image or url_for('static', filename='Anakomi.png') }}" class="img-fluid shadow-lg rounded-4" style="width: 250px; height: 250px; object-fit: cover;">
+                            </div>
+                            <h3 class="fw-bold text-center mb-4">{{ pending_match.p1_details.name }}</h3>
+                            <form action="{{ url_for('tournament.tournament_vote') }}" method="POST" class="w-100 px-4">
+                                <input type="hidden" name="match_id" value="{{ pending_match.id }}">
+                                <input type="hidden" name="participant_id" value="{{ pending_match.p1_id }}">
+                                <input type="hidden" name="code" value="{{ tournament.share_code }}">
+                                <button type="submit" class="btn btn-brand btn-lg w-100 py-3 fw-bold shadow">CHOISIR</button>
+                            </form>
+                        </div>
+                        
+                        <!-- VS Divider -->
+                        <div class="col-md-2 d-flex align-items-center justify-content-center bg-light py-3">
+                            <div class="vs-circle shadow">VS</div>
+                        </div>
+                        
+                        <!-- Participant 2 -->
+                        <div class="col-md-5 p-4 d-flex flex-column align-items-center justify-content-center duel-side">
+                            <div class="participant-preview mb-4">
+                                <img src="{{ pending_match.p2_details.image or url_for('static', filename='Anakomi.png') }}" class="img-fluid shadow-lg rounded-4" style="width: 250px; height: 250px; object-fit: cover;">
+                            </div>
+                            <h3 class="fw-bold text-center mb-4">{{ pending_match.p2_details.name }}</h3>
+                            <form action="{{ url_for('tournament.tournament_vote') }}" method="POST" class="w-100 px-4">
+                                <input type="hidden" name="match_id" value="{{ pending_match.id }}">
+                                <input type="hidden" name="participant_id" value="{{ pending_match.p2_id }}">
+                                <input type="hidden" name="code" value="{{ tournament.share_code }}">
+                                <button type="submit" class="btn btn-brand btn-lg w-100 py-3 fw-bold shadow">CHOISIR</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif active_round is not none %}
+    <!-- Waiting for Round Completion -->
+    <div class="row justify-content-center mb-5">
+        <div class="col-md-8 text-center">
+            <div class="card p-5 shadow-sm border-0 rounded-4 bg-light">
+                <div class="display-1 mb-4">🎉</div>
+                <h2 class="fw-bold">Votes terminés pour ce round !</h2>
+                <p class="text-muted fs-5">Tu as voté pour tous les matchs des {{ get_label(active_round, total_rounds) }}.</p>
+                {% if current_user and current_user.id == tournament.created_by %}
+                    <form action="{{ url_for('tournament.advance_round', code=tournament.share_code) }}" method="POST" class="mt-4">
+                        <input type="hidden" name="round" value="{{ active_round }}">
+                        <button type="submit" class="btn btn-brand btn-lg px-5 py-3 fw-bold">PASSER AU PROCHAIN TOUR</button>
+                    </form>
+                {% else %}
+                    <div class="alert alert-info mt-4 d-inline-block">
+                        <i class="fas fa-info-circle me-2"></i>En attente que l'organisateur clôture ce round...
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if tournament.tournament_type == 'poule' and group_standings %}
+    <!-- Group Standings -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h3 class="mb-4 fw-bold">Évolution des Poules</h3>
+            <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-4">
+                {% for group_id, participants in group_standings.items() %}
+                <div class="col">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-header bg-brand text-white fw-bold">
+                            Groupe {{ group_id }}
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">#</th>
+                                        <th>Nom</th>
+                                        <th class="text-center">Victoires</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for p in participants %}
+                                    <tr class="{% if loop.index <= 2 %}table-success{% endif %}">
+                                        <td class="ps-3 fw-bold">{{ loop.index }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <img src="{{ p.details.image or url_for('static', filename='Anakomi.png') }}" style="width: 25px; height: 25px; object-fit: cover; border-radius: 3px;">
+                                                <span class="small text-truncate" style="max-width: 120px;">{{ p.details.name }}</span>
+                                            </div>
+                                        </td>
+                                        <td class="text-center fw-bold">{{ p.wins }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="card-footer small text-muted">
+                            Les 2 premiers se qualifient
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Tournament Brackets -->
     <div class="tournament-bracket d-flex gap-4 overflow-auto pb-4">
@@ -133,6 +290,31 @@ function copyUrl() {
 </script>
 
 <style>
+.vs-circle {
+    width: 60px;
+    height: 60px;
+    background: var(--brand-color);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 1.2rem;
+    z-index: 2;
+}
+.duel-side {
+    transition: background 0.3s;
+}
+.duel-side:hover {
+    background: #f8f9fa;
+}
+.participant-preview img {
+    transition: transform 0.3s;
+}
+.duel-side:hover img {
+    transform: scale(1.05);
+}
 .tournament-bracket {
     min-height: 600px;
     padding: 20px 0;

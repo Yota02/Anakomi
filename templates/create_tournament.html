@@ -23,11 +23,32 @@
                     <div class="col-md-3">
                         <label for="tournament_size" class="form-label fw-bold">Nombre de participants</label>
                         <select class="form-select" id="tournament_size" name="tournament_size" onchange="updateCount()">
-                            <option value="4">4 participants (2 rounds)</option>
-                            <option value="8" selected>8 participants (3 rounds)</option>
-                            <option value="16">16 participants (4 rounds)</option>
-                            <option value="32">32 participants (5 rounds)</option>
+                            <option value="4">4 participants</option>
+                            <option value="8" selected>8 participants</option>
+                            <option value="16">16 participants</option>
+                            <option value="32">32 participants</option>
                         </select>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Format du tournoi</label>
+                        <div class="d-flex gap-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tournament_type" id="type_bracket" value="bracket" checked>
+                                <label class="form-check-label" for="type_bracket">
+                                    Élimination Directe (Arbre)
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="tournament_type" id="type_poule" value="poule">
+                                <label class="form-check-label" for="type_poule">
+                                    Poules + Phase Finale
+                                </label>
+                            </div>
+                        </div>
+                        <small class="text-muted">Le format "Poules" divise les participants en groupes de 4 avant la phase finale.</small>
                     </div>
                 </div>
 
