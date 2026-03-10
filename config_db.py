@@ -343,6 +343,19 @@ def ensure_tables():
                     cursor.execute("ALTER TABLE waifu ADD CONSTRAINT waifu_source_check CHECK ((anime_id IS NOT NULL AND videogame_id IS NULL) OR (anime_id IS NULL AND videogame_id IS NOT NULL))")
                 except Exception:
                     pass
+                
+                # Migration: ajouter id aux tables review si absent
+                cursor.execute("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'review' AND column_name = 'id'")
+                if cursor.fetchone()['COUNT(*)'] == 0:
+                    cursor.execute("ALTER TABLE review ADD COLUMN id INT AUTO_INCREMENT PRIMARY KEY FIRST")
+                
+                cursor.execute("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'videogame_review' AND column_name = 'id'")
+                if cursor.fetchone()['COUNT(*)'] == 0:
+                    cursor.execute("ALTER TABLE videogame_review ADD COLUMN id INT AUTO_INCREMENT PRIMARY KEY FIRST")
+                
+                cursor.execute("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'waifu_review' AND column_name = 'id'")
+                if cursor.fetchone()['COUNT(*)'] == 0:
+                    cursor.execute("ALTER TABLE waifu_review ADD COLUMN id INT AUTO_INCREMENT PRIMARY KEY FIRST")
                     
             conn.commit()
     except Exception as e:

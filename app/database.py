@@ -356,6 +356,28 @@ def ensure_tables():
                 cursor.execute(tournament_vote_sql)
                 cursor.execute(battle_royale_sql)
                 cursor.execute(battle_participant_sql)
+                
+                cursor.execute("""
+                    SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_NAME = 'review' AND COLUMN_NAME = 'id'
+                """)
+                if not cursor.fetchone():
+                    cursor.execute("ALTER TABLE review ADD COLUMN id INT AUTO_INCREMENT PRIMARY KEY FIRST")
+                
+                cursor.execute("""
+                    SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_NAME = 'videogame_review' AND COLUMN_NAME = 'id'
+                """)
+                if not cursor.fetchone():
+                    cursor.execute("ALTER TABLE videogame_review ADD COLUMN id INT AUTO_INCREMENT PRIMARY KEY FIRST")
+                
+                cursor.execute("""
+                    SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_NAME = 'waifu_review' AND COLUMN_NAME = 'id'
+                """)
+                if not cursor.fetchone():
+                    cursor.execute("ALTER TABLE waifu_review ADD COLUMN id INT AUTO_INCREMENT PRIMARY KEY FIRST")
+                
             conn.commit()
     except Exception as e:
         logger.warning(f"⚠️  Échec création/verification des tables : {e}")

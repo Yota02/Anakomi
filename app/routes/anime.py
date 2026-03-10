@@ -80,9 +80,9 @@ def anime_detail(id):
     user_tbl = info['table']
     reviews = fetch_all(f"""
         SELECT r.*, u.username,
-               (SELECT GROUP_CONCAT(CONCAT(emoji, ':', count) SEPARATOR '|') FROM (
-                   SELECT emoji, COUNT(*) as count FROM review_reaction WHERE review_id = r.id GROUP BY emoji
-               ) as t) as reactions
+               (SELECT GROUP_CONCAT(CONCAT(rr.emoji, ':', cnt) SEPARATOR '|')
+                FROM (SELECT review_id, emoji, COUNT(*) as cnt FROM review_reaction GROUP BY review_id, emoji) as rr
+                WHERE rr.review_id = r.id) as reactions
         FROM review r 
         JOIN {user_tbl} u ON r.user_id = u.id 
         WHERE r.anime_id = %s 
