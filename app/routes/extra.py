@@ -1,8 +1,10 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from app.database import fetch_all, fetch_one, execute_query
+from app.database import fetch_all, fetch_one, execute_query
 from app.decorators import login_required
 import random
 from collections import Counter
+from datetime import date
 
 extra_bp = Blueprint('extra', __name__)
 
@@ -283,45 +285,154 @@ def otaku_age():
 @login_required
 def gacha():
     user_id = session['user_id']
-    user = fetch_one("SELECT points FROM user WHERE id = %s", (user_id,))
+    user = fetch_one("SELECT points, gacha_pity FROM user WHERE id = %s", (user_id,))
     
-    return render_template('gacha.html', points=user['points'] if user else 0)
+    # Fetch daily quests
+    today = date.today()
+    quests = fetch_all("SELECT * FROM user_quest WHERE user_id = %s AND DATE(created_at) = %s", (user_id, today))
+    if not quests:
+        # Create default quests
+        execute_query("INSERT INTO user_quest (user_id, quest_type, progress, target, completed, created_at) VALUES (%s, 'gacha_rolls', 0, 5, False, %s)", (user_id, today))
+        quests = fetch_all("SELECT * FROM user_quest WHERE user_id = %s AND created_at = %s", (user_id, today))
+    
+    return render_template('gacha.html', points=user['points'] if user else 0, pity=user['gacha_pity'] if user else 0, quests=quests)
 
 @extra_bp.route('/gacha/roll', methods=['POST'])
 @login_required
 def gacha_roll():
     user_id = session['user_id']
-    user = fetch_one("SELECT points FROM user WHERE id = %s", (user_id,))
+    banner = request.form.get('banner', 'standard')
+    amount = int(request.form.get('amount', 1))
     
-    if not user or user['points'] < 10:
-        flash("Pas assez de points ! (10 points par tirage)")
+    user = fetch_one("SELECT points, gacha_pity FROM user WHERE id = %s", (user_id,))
+    
+    roll_cost = 10 * amount
+    if not user or user['points'] < roll_cost:
+        flash("Pas assez de points !")
         return redirect(url_for('extra.gacha'))
     
-    # Deduct points
-    execute_query("UPDATE user SET points = points - 10 WHERE id = %s", (user_id,))
+    pity = user.get('gacha_pity', 0)
+    waifus = []
     
-    # Pick a random waifu
-    waifu = fetch_one("SELECT * FROM waifu ORDER BY RAND() LIMIT 1")
-    
-    if not waifu:
+    for _ in range(amount):
+        pity += 1
+        # Rarity logic
+        if pity >= 50:
+            rarity_filter = "rarity = 'Légendaire'"
+            pity = 0 # reset
+        else:
+            roll = random.random()
+            if roll < 0.05: # 5% Legendaire
+                rarity_filter = "rarity = 'Légendaire'"
+                pity = 0
+            elif roll < 0.20: # 15% Epique
+                rarity_filter = "rarity = 'Épique'"
+            elif roll < 0.50: # 30% Rare
+                rarity_filter = "rarity = 'Rare'"
+            else: # 50% Commune
+                rarity_filter = "rarity = 'Commune'"
+                
+        # Banner logic
+        if banner == 'shonen':
+            # Try to get a shonen waifu
+            waifu = fetch_one(f"SELECT w.* FROM waifu w JOIN anime a ON w.anime_id = a.id WHERE (a.genre LIKE '%%Shonen%%' OR a.genre LIKE '%%Shōnen%%') AND w.{rarity_filter} ORDER BY RAND() LIMIT 1")
+            if not waifu:
+                waifu = fetch_one(f"SELECT * FROM waifu WHERE {rarity_filter} ORDER BY RAND() LIMIT 1")
+        else:
+            waifu = fetch_one(f"SELECT * FROM waifu WHERE {rarity_filter} ORDER BY RAND() LIMIT 1")
+            
+        # Fallback if no waifu in that rarity
+        if not waifu:
+            waifu = fetch_one("SELECT * FROM waifu ORDER BY RAND() LIMIT 1")
+        
+        if waifu:
+            waifus.append(waifu)
+            # Add to collection
+            execute_query("""
+                INSERT INTO user_collection (user_id, waifu_id, quantity) 
+                VALUES (%s, %s, 1) 
+                ON DUPLICATE KEY UPDATE quantity = quantity + 1
+            """, (user_id, waifu['id']))
+            
+    if not waifus:
         flash("Aucun personnage disponible dans le gacha.")
         return redirect(url_for('extra.gacha'))
     
-    # Add to collection
-    execute_query("""
-        INSERT INTO user_collection (user_id, waifu_id, quantity) 
-        VALUES (%s, %s, 1) 
-        ON DUPLICATE KEY UPDATE quantity = quantity + 1
-    """, (user_id, waifu['id']))
+    # Deduct points and update pity
+    execute_query("UPDATE user SET points = points - %s, gacha_pity = %s WHERE id = %s", (roll_cost, pity, user_id))
     
-    return render_template('gacha_result.html', waifu=waifu)
+    # Update Quests
+    update_quest_progress(user_id, 'gacha_rolls', amount)
+    
+    return render_template('gacha_result.html', waifus=waifus)
+
+def update_quest_progress(user_id, quest_type, amount):
+    today = date.today()
+    quest = fetch_one("SELECT * FROM user_quest WHERE user_id = %s AND quest_type = %s AND created_at = %s", (user_id, quest_type, today))
+    if quest:
+        if not quest['completed']:
+            new_progress = min(quest['progress'] + amount, quest['target'])
+            completed = new_progress >= quest['target']
+            execute_query("UPDATE user_quest SET progress = %s, completed = %s WHERE id = %s", (new_progress, completed, quest['id']))
+            if completed:
+                execute_query("UPDATE user SET points = points + 20 WHERE id = %s", (user_id,))
+    else:
+        target = 5 if quest_type == 'gacha_rolls' else 10
+        completed = amount >= target
+        execute_query("INSERT INTO user_quest (user_id, quest_type, progress, target, completed, created_at) VALUES (%s, %s, %s, %s, %s, %s)",
+                      (user_id, quest_type, amount, target, completed, today))
+        if completed:
+            execute_query("UPDATE user SET points = points + 20 WHERE id = %s", (user_id,))
+
+@extra_bp.route('/gacha/exchange', methods=['POST'])
+@login_required
+def gacha_exchange():
+    user_id = session['user_id']
+    waifu_id = request.form.get('waifu_id')
+    
+    item = fetch_one("SELECT quantity FROM user_collection WHERE user_id = %s AND waifu_id = %s", (user_id, waifu_id))
+    if item and item['quantity'] > 1:
+        # Sell duplicate
+        execute_query("UPDATE user_collection SET quantity = quantity - 1 WHERE user_id = %s AND waifu_id = %s", (user_id, waifu_id))
+        execute_query("UPDATE user SET points = points + 5 WHERE id = %s", (user_id,))
+        flash("Doublon échangé contre 5 points !")
+    else:
+        flash("Impossible d'échanger cette carte.")
+    
+    return redirect(url_for('extra.collection'))
+
+@extra_bp.route('/gacha/craft', methods=['POST'])
+@login_required
+def gacha_craft():
+    user_id = session['user_id']
+    waifu_id = request.form.get('waifu_id')
+    
+    item = fetch_one("SELECT c.quantity, w.rarity FROM user_collection c JOIN waifu w ON c.waifu_id = w.id WHERE c.user_id = %s AND c.waifu_id = %s", (user_id, waifu_id))
+    if item and item['quantity'] >= 5 and item['rarity'] == 'Commune':
+        # Craft a rare card
+        execute_query("UPDATE user_collection SET quantity = quantity - 5 WHERE user_id = %s AND waifu_id = %s", (user_id, waifu_id))
+        rare_waifu = fetch_one("SELECT id FROM waifu WHERE rarity = 'Rare' ORDER BY RAND() LIMIT 1")
+        if rare_waifu:
+            execute_query("""
+                INSERT INTO user_collection (user_id, waifu_id, quantity) 
+                VALUES (%s, %s, 1) 
+                ON DUPLICATE KEY UPDATE quantity = quantity + 1
+            """, (user_id, rare_waifu['id']))
+            flash("Fusion réussie ! Vous avez obtenu une carte Rare.")
+        else:
+            execute_query("UPDATE user SET points = points + 50 WHERE id = %s", (user_id,))
+            flash("Pas de carte Rare disponible. 50 points obtenus.")
+    else:
+        flash("Il faut 5 exemplaires d'une carte Commune pour fusionner.")
+    
+    return redirect(url_for('extra.collection'))
 
 @extra_bp.route('/collection')
 @login_required
 def collection():
     user_id = session['user_id']
     items = fetch_all("""
-        SELECT c.*, w.name, w.image_url 
+        SELECT c.*, w.name, w.image_url, w.rarity 
         FROM user_collection c 
         JOIN waifu w ON c.waifu_id = w.id 
         WHERE c.user_id = %s

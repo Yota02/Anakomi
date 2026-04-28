@@ -17,9 +17,24 @@
                 {% endif %}
                 <div class="card-body">
                     <h5 class="card-title fw-bold">{{ item.name }}</h5>
+                    <p class="text-muted small mb-1">Rareté: {{ item.rarity }}</p>
                     <span class="position-absolute top-0 end-0 badge rounded-pill bg-brand m-2 fs-6">
                         x{{ item.quantity }}
                     </span>
+                    
+                    {% if item.quantity > 1 %}
+                    <form action="{{ url_for('extra.gacha_exchange') }}" method="POST" class="d-inline">
+                        <input type="hidden" name="waifu_id" value="{{ item.waifu_id }}">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary w-100 mt-2">Échanger Doublon (+5 pts)</button>
+                    </form>
+                    {% endif %}
+                    
+                    {% if item.quantity >= 5 and item.rarity == 'Commune' %}
+                    <form action="{{ url_for('extra.gacha_craft') }}" method="POST" class="d-inline">
+                        <input type="hidden" name="waifu_id" value="{{ item.waifu_id }}">
+                        <button type="submit" class="btn btn-sm btn-outline-warning w-100 mt-2">Fusionner x5 en Rare</button>
+                    </form>
+                    {% endif %}
                 </div>
             </div>
         </div>

@@ -405,6 +405,15 @@
                             <li><a class="dropdown-item" href="{{ url_for('waifu.waifus_jeux_video_garcons') }}">Garçons de Jeux Vidéo</a></li>
                         </ul>
                     </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navGacha" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-dice-d20 me-1"></i> Gacha
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('extra.gacha') }}"><i class="fas fa-star me-2"></i>Tirages (Vœux)</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('extra.collection') }}"><i class="fas fa-box-open me-2"></i>Ma Collection</a></li>
+                        </ul>
+                    </li>
                     {% if current_user %}
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="navMyTops" role="button" data-bs-toggle="dropdown">

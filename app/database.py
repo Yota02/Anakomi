@@ -366,6 +366,19 @@ def ensure_tables():
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     """
 
+    user_quest_sql = """
+    CREATE TABLE IF NOT EXISTS user_quest (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        quest_type VARCHAR(50) NOT NULL,
+        progress INT DEFAULT 0,
+        target INT NOT NULL,
+        completed BOOLEAN DEFAULT FALSE,
+        created_at DATE NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_user_quest (user_id, quest_type, created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
 
     try:
         with get_connection() as conn:
@@ -393,7 +406,26 @@ def ensure_tables():
                 cursor.execute(user_collection_sql)
                 cursor.execute(tier_list_sql)
                 cursor.execute(tier_list_item_sql)
+                cursor.execute(user_quest_sql)
                 
+                # Update user table with new gacha columns
+                cursor.execute("""
+                    SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_NAME = 'user' AND COLUMN_NAME = 'gacha_pity'
+                """)
+                if not cursor.fetchone():
+                    cursor.execute("ALTER TABLE user ADD COLUMN gacha_pity INT DEFAULT 0")
+                    cursor.execute("ALTER TABLE user ADD COLUMN last_login_date DATE")
+                    cursor.execute("ALTER TABLE user ADD COLUMN login_streak INT DEFAULT 0")
+                    
+                # Update waifu table with rarity
+                cursor.execute("""
+                    SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_NAME = 'waifu' AND COLUMN_NAME = 'rarity'
+                """)
+                if not cursor.fetchone():
+                    cursor.execute("ALTER TABLE waifu ADD COLUMN rarity VARCHAR(20) DEFAULT 'Commune'")
+
                 # Vérifier si la colonne 'points' existe dans la table 'user'
                 cursor.execute("""
                     SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 

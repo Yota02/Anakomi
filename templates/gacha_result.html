@@ -1,198 +1,286 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!-- Reveal Animation Overlay -->
-<div id="reveal-overlay" class="reveal-overlay">
-    <div class="gacha-orb-container">
-        <div class="gacha-orb" id="gacha-orb"></div>
-        <div class="reveal-text">TIRAGE EN COURS...</div>
-    </div>
-</div>
+<style>
+/* Genshin style result screen */
+body {
+    background-color: #0d1123;
+}
+.reveal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #000;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.5s ease-out;
+}
+.shooting-star-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+.shooting-star {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 150px;
+    height: 4px;
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,1) 50%, rgba(255,215,0,1) 100%);
+    border-radius: 50%;
+    filter: drop-shadow(0 0 15px rgba(255, 215, 0, 1));
+    animation: shoot 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+.shooting-star::after {
+    content: '';
+    position: absolute;
+    right: -10px;
+    top: -8px;
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 0 30px 10px #ffd700;
+}
 
-<div id="result-content" class="container py-5 text-center" style="display: none;">
-    <h1 class="mb-5 display-4 reveal-title">✨ VOUS AVEZ OBTENU...</h1>
+@keyframes shoot {
+    0% { transform: translate(-200px, 0) scale(1); }
+    70% { transform: translate(50vw, 0) scale(1.5); }
+    100% { transform: translate(50vw, 0) scale(50); opacity: 0; }
+}
 
-    <div class="row justify-content-center">
-        <div class="col-md-5">
-            <div class="card gacha-card shadow-lg p-3">
-                {% if waifu.image_url %}
-                    <img src="{{ waifu.image_url }}" class="card-img-top" alt="{{ waifu.name }}" style="height: 500px; object-fit: cover; border-radius: 15px;">
-                {% else %}
-                    <div class="bg-dark text-white d-flex align-items-center justify-content-center" style="height: 500px; border-radius: 15px;">
-                        <span>Pas d'image</span>
-                    </div>
-                {% endif %}
-                <div class="card-body">
-                    <h1 class="card-title fw-bold">{{ waifu.name }}</h1>
-                    <p class="badge bg-brand fs-5 mt-2">{{ waifu.gender }}</p>
-                </div>
-            </div>
-        </div>
-    </div>
+.result-container {
+    min-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at center, #1b2845 0%, #000000 100%);
+    background-image: url('https://www.transparenttextures.com/patterns/stardust.png'), radial-gradient(circle at center, #2e1c45 0%, #000 100%);
+    color: #fff;
+    padding: 20px;
+    border-radius: 20px;
+    position: relative;
+}
 
-    <div class="mt-5">
-        <a href="{{ url_for('extra.gacha') }}" class="btn btn-brand btn-lg px-5">Encore !</a>
-        <a href="{{ url_for('extra.collection') }}" class="btn btn-outline-brand btn-lg px-5">Ma Collection</a>
-    </div>
-</div>
+.character-card {
+    position: relative;
+    width: 350px;
+    height: 600px;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(255, 215, 0, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    animation: cardFloat 3s infinite ease-in-out, cardAppear 1.5s ease-out;
+}
+.rarity-5 { box-shadow: 0 0 60px rgba(255, 215, 0, 0.6); border-color: rgba(255, 215, 0, 0.8); }
+.rarity-4 { box-shadow: 0 0 60px rgba(186, 85, 211, 0.6); border-color: rgba(186, 85, 211, 0.8); }
+.rarity-3 { box-shadow: 0 0 60px rgba(0, 191, 255, 0.6); border-color: rgba(0, 191, 255, 0.8); }
 
-<!-- Flash effect element -->
+.character-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.character-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 40px 20px 20px;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+    text-align: left;
+}
+
+.stars {
+    color: #ffd700;
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+}
+
+.character-name {
+    font-size: 2.5rem;
+    font-weight: 800;
+    margin: 0;
+    font-style: italic;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.character-element {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 15px;
+    background: rgba(255,255,255,0.2);
+    backdrop-filter: blur(5px);
+    font-size: 0.9rem;
+    margin-top: 10px;
+}
+
+.flash-effect {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: white;
+    z-index: 10000;
+    opacity: 0;
+    pointer-events: none;
+}
+.flash-active {
+    animation: flash-anim 0.8s ease-out forwards;
+}
+
+@keyframes flash-anim {
+    0% { opacity: 0; }
+    30% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@keyframes cardFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-15px); }
+}
+
+@keyframes cardAppear {
+    0% { transform: scale(0.8) translateY(50px); opacity: 0; filter: brightness(2) blur(10px); }
+    100% { transform: scale(1) translateY(0); opacity: 1; filter: brightness(1) blur(0); }
+}
+
+.action-buttons {
+    margin-top: 40px;
+    display: flex;
+    gap: 20px;
+    animation: fadeIn 2s ease forwards;
+    opacity: 0;
+}
+
+.action-btn {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 12px 30px;
+    border-radius: 30px;
+    font-size: 1.1rem;
+    text-decoration: none;
+    transition: all 0.3s;
+    backdrop-filter: blur(5px);
+}
+.action-btn:hover {
+    background: rgba(255,255,255,0.9);
+    color: #000;
+    box-shadow: 0 0 20px rgba(255,255,255,0.5);
+}
+
+@keyframes fadeIn {
+    to { opacity: 1; }
+}
+
+.small-card {
+    width: 200px;
+    height: 350px;
+}
+.small-card .character-name {
+    font-size: 1.5rem;
+}
+.small-card .character-info {
+    padding: 20px 10px 10px;
+}
+.small-card .character-element {
+    font-size: 0.8rem;
+    padding: 2px 8px;
+}
+</style>
+
+<!-- Flash effect -->
 <div id="flash-effect" class="flash-effect"></div>
 
-<style>
-    .reveal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: radial-gradient(circle, #1a1a2e 0%, #0f0f1a 100%);
-        z-index: 9999;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        transition: opacity 0.5s ease-out;
-    }
+<!-- Reveal Animation Overlay -->
+<div id="reveal-overlay" class="reveal-overlay">
+    <div class="shooting-star-container">
+        <!-- Rarity colors for the star can be adjusted based on logic, yellow for default here -->
+        <div class="shooting-star"></div>
+    </div>
+</div>
 
-    .gacha-orb-container {
-        text-align: center;
-    }
+<div id="result-content" class="container-fluid py-4" style="display: none;">
+    <div class="result-container shadow-lg">
+        <div class="d-flex flex-wrap justify-content-center gap-4">
+            {% for waifu in waifus %}
+                <!-- Determine rarity class -->
+                {% set rarity_class = 'rarity-3' %}
+                {% set stars = 3 %}
+                {% if waifu.rarity == 'Légendaire' %}
+                    {% set rarity_class = 'rarity-5' %}
+                    {% set stars = 5 %}
+                {% elif waifu.rarity == 'Épique' %}
+                    {% set rarity_class = 'rarity-4' %}
+                    {% set stars = 4 %}
+                {% endif %}
 
-    .gacha-orb {
-        width: 150px;
-        height: 150px;
-        background: radial-gradient(circle, #fff 0%, #ff4757 70%, #ff6b81 100%);
-        border-radius: 50%;
-        box-shadow: 0 0 50px #ff4757, 0 0 100px #ff4757;
-        margin: 0 auto 30px;
-        animation: idle-float 2s infinite ease-in-out, orb-pulse 1s infinite alternate;
-    }
+                <div class="character-card {{ rarity_class }} {% if waifus|length > 1 %}small-card{% endif %}" style="animation-delay: {{ loop.index0 * 0.1 }}s">
+                    {% if waifu.image_url %}
+                        <img src="{{ waifu.image_url }}" class="character-image" alt="{{ waifu.name }}">
+                    {% else %}
+                        <div class="bg-dark text-white d-flex align-items-center justify-content-center h-100">
+                            <span class="opacity-50">Image non disponible</span>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="character-info">
+                        <div class="stars">
+                            {% for i in range(stars) %}
+                            <i class="fas fa-star"></i>
+                            {% endfor %}
+                        </div>
+                        <h2 class="character-name">{{ waifu.name }}</h2>
+                        <div class="character-element">
+                            <i class="fas fa-venus-mars"></i> {{ waifu.gender }}
+                        </div>
+                        <div class="character-element ms-2 text-warning">
+                            <i class="fas fa-gem"></i> {{ waifu.rarity }}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
 
-    .reveal-text {
-        color: white;
-        font-size: 1.5rem;
-        font-weight: bold;
-        letter-spacing: 5px;
-        text-transform: uppercase;
-        animation: text-pulse 1s infinite alternate;
-    }
+        <div class="action-buttons">
+            <a href="{{ url_for('extra.gacha') }}" class="action-btn"><i class="fas fa-undo"></i> Continuer</a>
+            <a href="{{ url_for('extra.collection') }}" class="action-btn"><i class="fas fa-book-open"></i> Ma Collection</a>
+        </div>
 
-    .flash-effect {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: white;
-        z-index: 10000;
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    /* Animations */
-    @keyframes idle-float {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-20px); }
-    }
-
-    @keyframes orb-pulse {
-        from { transform: scale(1); box-shadow: 0 0 50px #ff4757; }
-        to { transform: scale(1.1); box-shadow: 0 0 80px #ff4757, 0 0 120px #ff4757; }
-    }
-
-    @keyframes text-pulse {
-        from { opacity: 0.5; }
-        to { opacity: 1; }
-    }
-
-    @keyframes shake {
-        0% { transform: translate(0, 0); }
-        10% { transform: translate(-10px, -10px); }
-        20% { transform: translate(10px, 10px); }
-        30% { transform: translate(-10px, 10px); }
-        40% { transform: translate(10px, -10px); }
-        50% { transform: translate(-10px, -10px); }
-        60% { transform: translate(10px, 10px); }
-        70% { transform: translate(-10px, 10px); }
-        80% { transform: translate(10px, -10px); }
-        90% { transform: translate(-10px, -10px); }
-        100% { transform: translate(0, 0); }
-    }
-
-    @keyframes flash-anim {
-        0% { opacity: 0; }
-        50% { opacity: 1; }
-        100% { opacity: 0; }
-    }
-
-    .shake-active {
-        animation: shake 0.1s infinite !important;
-    }
-
-    .flash-active {
-        animation: flash-anim 0.4s ease-out forwards;
-    }
-
-    .gacha-card {
-        border: 4px solid gold;
-        border-radius: 20px;
-        background: linear-gradient(45deg, #fff, #f8f9fa);
-        animation: card-reveal 1s ease-out;
-    }
-
-    .reveal-title {
-        animation: title-reveal 1.5s ease-out;
-    }
-
-    @keyframes card-reveal {
-        from { transform: scale(0.5) rotateY(180deg); opacity: 0; }
-        to { transform: scale(1) rotateY(0); opacity: 1; }
-    }
-
-    @keyframes title-reveal {
-        from { transform: translateY(-50px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
-    }
-
-    .bg-brand { background-color: #ff4757; }
-    .btn-brand { background-color: #ff4757; color: white; }
-    .btn-brand:hover { background-color: #e84118; color: white; }
-    .btn-outline-brand { border-color: #ff4757; color: #ff4757; }
-    .btn-outline-brand:hover { background-color: #ff4757; color: white; }
-</style>
+    </div>
+</div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const orb = document.getElementById('gacha-orb');
     const overlay = document.getElementById('reveal-overlay');
     const content = document.getElementById('result-content');
     const flash = document.getElementById('flash-effect');
 
-    // Sequence:
-    // 1. Initial wait (1s)
-    // 2. Start shaking (1s)
-    // 3. Flash + Hide overlay + Show result
-    
+    // Wait for the shooting star animation (1.5s)
     setTimeout(() => {
-        orb.classList.add('shake-active');
+        // Trigger Flash
+        flash.classList.add('flash-active');
         
+        // Switch content
+        overlay.style.display = 'none';
+        content.style.display = 'block';
+        
+        // Remove flash after animation
         setTimeout(() => {
-            // Trigger Flash
-            flash.classList.add('flash-active');
-            
-            // Switch content
-            overlay.style.display = 'none';
-            content.style.display = 'block';
-            
-            // Remove flash after animation
-            setTimeout(() => {
-                flash.classList.remove('flash-active');
-            }, 500);
-            
-        }, 1200); // Shaking duration
+            flash.classList.remove('flash-active');
+        }, 800);
         
-    }, 800); // Initial delay
+    }, 1200); 
 });
 </script>
 {% endblock %}

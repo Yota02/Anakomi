@@ -1,55 +1,397 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container py-5 text-center">
-    <h1 class="mb-4">🎰 Waifu/Husbando Gacha</h1>
-    <p class="lead">Utilisez vos points pour collectionner des personnages rares !</p>
+<style>
+/* Genshin style aesthetics */
+body {
+    background-color: #0d1123;
+}
+.gacha-container {
+    position: relative;
+    width: 100%;
+    min-height: 80vh;
+    background: radial-gradient(circle at center, #1b2845 0%, #0d1123 100%);
+    background-image: url('https://www.transparenttextures.com/patterns/stardust.png'), radial-gradient(circle at center, #2e1c45 0%, #0d1123 100%);
+    border-radius: 20px;
+    overflow: hidden;
+    color: #e5e5e5;
+    font-family: 'Inter', sans-serif;
+    box-shadow: 0 0 40px rgba(0,0,0,0.8);
+    display: flex;
+    flex-direction: column;
+}
+.gacha-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px 40px;
+    align-items: center;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);
+}
+.gacha-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 2px 10px rgba(255, 255, 255, 0.3);
+}
+.currency-box {
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 30px;
+    padding: 8px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    backdrop-filter: blur(10px);
+}
+.currency-icon {
+    color: #ffc107;
+    font-size: 1.2rem;
+    text-shadow: 0 0 10px #ffc107;
+}
+.currency-amount {
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: #fff;
+}
+.gacha-body {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 40px;
+}
+.banner-selection {
+    position: absolute;
+    top: 20px;
+    display: flex;
+    gap: 15px;
+    z-index: 10;
+}
+.banner-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    padding: 10px 30px;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    backdrop-filter: blur(5px);
+}
+.banner-btn.active, .banner-btn:hover {
+    background: rgba(255, 255, 255, 0.9);
+    color: #0d1123;
+    box-shadow: 0 0 20px rgba(255,255,255,0.5);
+    border-color: white;
+}
+.banner-display {
+    text-align: center;
+    margin-top: 40px;
+    width: 100%;
+    max-width: 1000px;
+    height: 450px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding-bottom: 40px;
+    box-shadow: inset 0 -150px 150px rgba(0,0,0,0.9), 0 10px 30px rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.1);
+    transition: all 0.5s ease-in-out;
+    background-image: url('{{ url_for('static', filename='banners/voyage.png') }}');
+    position: relative;
+    overflow: hidden;
+}
+.banner-display h2 {
+    font-size: 3.5rem;
+    font-style: italic;
+    font-weight: 900;
+    background: linear-gradient(to right, #ffdf00, #ff8c00);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 30px rgba(0,0,0,0.5);
+    margin-bottom: 5px;
+    z-index: 2;
+}
+.banner-display p {
+    font-size: 1.3rem;
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    z-index: 2;
+}
+.pity-counter {
+    background: rgba(0, 0, 0, 0.5);
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    margin-top: 20px;
+    display: inline-block;
+    border: 1px solid rgba(255,215,0,0.3);
+    color: #ffd700;
+}
+.gacha-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding: 30px 50px;
+    gap: 20px;
+    position: absolute;
+    bottom: 0;
+    width: 100%;
+    background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
+}
+.wish-btn {
+    background: linear-gradient(135deg, #e0e0e0 0%, #ffffff 100%);
+    border: 2px solid #fff;
+    color: #333;
+    padding: 12px 35px;
+    border-radius: 30px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 0 15px rgba(255,255,255,0.5);
+    text-decoration: none;
+}
+.wish-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 25px rgba(255,255,255,0.8);
+    background: #fff;
+    color: #000;
+}
+.wish-btn .cost {
+    font-size: 0.9rem;
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 2px;
+}
+.wish-btn.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    filter: grayscale(100%);
+}
+.wish-btn-gold {
+    background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+    border-color: #ffd700;
+    color: #fff;
+}
+.wish-btn-gold .cost {
+    color: #fff;
+}
+.side-buttons {
+    position: absolute;
+    bottom: 30px;
+    left: 50px;
+    display: flex;
+    gap: 15px;
+}
+.side-btn {
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 10px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: 0.2s;
+    backdrop-filter: blur(5px);
+}
+.side-btn:hover {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+}
 
-    <div class="row justify-content-center mt-5">
-        <div class="col-md-6">
-            <div class="card shadow-lg p-5">
-                <div class="mb-5">
-                    <h2 class="text-muted small">VOS POINTS</h2>
-                    <div class="display-3 fw-bold text-brand">{{ points }}</div>
-                </div>
+/* Quests Overlay */
+.quests-btn {
+    position: absolute;
+    top: 80px;
+    right: 40px;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #fff;
+    padding: 10px;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.3s;
+    z-index: 20;
+}
+.quests-btn:hover {
+    background: rgba(255,255,255,0.2);
+}
+.quests-panel {
+    position: absolute;
+    top: 140px;
+    right: 40px;
+    background: rgba(15, 20, 35, 0.95);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 15px;
+    padding: 20px;
+    width: 300px;
+    display: none;
+    z-index: 20;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.quests-panel.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+.quest-item {
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+.quest-progress {
+    height: 6px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 3px;
+    margin-top: 8px;
+    overflow: hidden;
+}
+.quest-bar {
+    height: 100%;
+    background: #00e676;
+}
 
-                <form id="gacha-form" action="{{ url_for('extra.gacha_roll') }}" method="POST">
-                    <button type="submit" id="roll-button" class="btn btn-brand btn-lg w-100 py-3 mb-4" {% if points < 10 %}disabled{% endif %}>
-                        <span id="button-text">
-                            <i class="fas fa-dice me-2"></i> TIRER UNE CARTE (10 pts)
-                        </span>
-                        <span id="button-spinner" style="display: none;">
-                            <i class="fas fa-spinner fa-spin me-2"></i> PRÉPARATION DU TIRAGE...
-                        </span>
-                    </button>
-                </form>
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
 
-                <div class="d-flex justify-content-center gap-3">
-                    <a href="{{ url_for('extra.collection') }}" class="btn btn-outline-brand px-4">Ma Collection</a>
-                    <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary px-4">Gagner des points</a>
-                </div>
+<div class="gacha-container mt-3 mb-5">
+    <!-- Header -->
+    <div class="gacha-header">
+        <div class="gacha-title">
+            <i class="fas fa-meteor"></i> Vœux
+        </div>
+        <div class="currency-box">
+            <i class="fas fa-gem currency-icon"></i>
+            <span class="currency-amount">{{ points }}</span>
+        </div>
+    </div>
+
+    <!-- Quests -->
+    <div class="quests-btn" onclick="toggleQuests()">
+        <i class="fas fa-scroll"></i>
+    </div>
+    <div class="quests-panel" id="quests-panel">
+        <h5 class="text-white mb-3 border-bottom border-secondary pb-2">Missions du jour</h5>
+        {% for quest in quests %}
+        <div class="quest-item">
+            <div class="d-flex justify-content-between text-white-50 small mb-1">
+                <span>
+                    {% if quest.quest_type == 'gacha_rolls' %}
+                        Faire {{ quest.target }} tirages Gacha
+                    {% endif %}
+                </span>
+                <span>{{ quest.progress }}/{{ quest.target }}</span>
+            </div>
+            <div class="quest-progress">
+                <div class="quest-bar {% if quest.completed %}bg-success{% else %}bg-info{% endif %}" 
+                     style="width: {{ (quest.progress / quest.target * 100) | round }}%"></div>
+            </div>
+            {% if quest.completed %}
+                <div class="text-success small text-end mt-1"><i class="fas fa-check-circle"></i> Terminé</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Body -->
+    <div class="gacha-body">
+        <div class="banner-selection">
+            <button type="button" class="banner-btn active" onclick="selectBanner('standard', this)">Envie de Voyage</button>
+            <button type="button" class="banner-btn" onclick="selectBanner('shonen', this)">Épopée Shonen</button>
+        </div>
+
+        <div class="banner-display">
+            <h2 id="banner-title">Envie de Voyage</h2>
+            <p id="banner-desc">Invoquez des personnages de toutes les dimensions</p>
+            <div class="pity-counter">
+                <i class="fas fa-star text-warning"></i> Pity Légendaire : {{ pity }} / 50
             </div>
         </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="gacha-footer">
+        <div class="side-buttons">
+            <a href="{{ url_for('extra.collection') }}" class="side-btn"><i class="fas fa-book-open"></i> Collection</a>
+            <a href="{{ url_for('main.index') }}" class="side-btn"><i class="fas fa-plus-circle"></i> Gagner des gemmes</a>
+        </div>
+
+        <form id="gacha-form" action="{{ url_for('extra.gacha_roll') }}" method="POST" class="m-0 d-flex gap-3">
+            <input type="hidden" name="banner" id="banner-input" value="standard">
+            <input type="hidden" name="amount" id="amount-input" value="1">
+            <button type="button" onclick="submitRoll(1)" id="roll-button-1" class="wish-btn {% if points < 10 %}disabled{% endif %}">
+                <span>Vœu x1</span>
+                <span class="cost"><i class="fas fa-gem text-warning"></i> 10</span>
+            </button>
+            <button type="button" onclick="submitRoll(10)" id="roll-button-10" class="wish-btn wish-btn-gold {% if points < 100 %}disabled{% endif %}">
+                <span>Vœux x10</span>
+                <span class="cost"><i class="fas fa-gem text-warning"></i> 100</span>
+            </button>
+        </form>
     </div>
 </div>
 
 <script>
-document.getElementById('gacha-form').addEventListener('submit', function() {
-    const btn = document.getElementById('roll-button');
-    const text = document.getElementById('button-text');
-    const spinner = document.getElementById('button-spinner');
+function selectBanner(type, btnElement) {
+    document.querySelectorAll('.banner-btn').forEach(b => b.classList.remove('active'));
+    btnElement.classList.add('active');
+    document.getElementById('banner-input').value = type;
     
-    btn.disabled = true;
-    text.style.display = 'none';
-    spinner.style.display = 'inline';
-});
-</script>
+    const bannerDisplay = document.querySelector('.banner-display');
+    const title = document.getElementById('banner-title');
+    const desc = document.getElementById('banner-desc');
 
-<style>
-    .text-brand { color: #ff4757; }
-    .btn-brand { background-color: #ff4757; color: white; }
-    .btn-brand:hover { background-color: #e84118; color: white; }
-    .btn-outline-brand { border-color: #ff4757; color: #ff4757; }
-    .btn-outline-brand:hover { background-color: #ff4757; color: white; }
-</style>
+    if (type === 'standard') {
+        title.innerText = 'Envie de Voyage';
+        title.style.background = 'linear-gradient(to right, #ffdf00, #ff8c00)';
+        title.style.webkitBackgroundClip = 'text';
+        desc.innerText = 'Invoquez des personnages de toutes les dimensions';
+        bannerDisplay.style.backgroundImage = "url('{{ url_for('static', filename='banners/voyage.png') }}')";
+    } else {
+        title.innerText = 'Épopée Shonen';
+        title.style.background = 'linear-gradient(to right, #ff4b2b, #ff416c)';
+        title.style.webkitBackgroundClip = 'text';
+        desc.innerText = 'Taux de drop augmenté pour les héros Shonen';
+        bannerDisplay.style.backgroundImage = "url('{{ url_for('static', filename='banners/shonen.png') }}')";
+    }
+}
+
+function toggleQuests() {
+    const panel = document.getElementById('quests-panel');
+    panel.classList.toggle('active');
+}
+
+function submitRoll(amount) {
+    document.getElementById('amount-input').value = amount;
+    const btn1 = document.getElementById('roll-button-1');
+    const btn10 = document.getElementById('roll-button-10');
+    if (amount === 1 && btn1.classList.contains('disabled')) return;
+    if (amount === 10 && btn10.classList.contains('disabled')) return;
+    
+    const targetBtn = amount === 1 ? btn1 : btn10;
+    targetBtn.innerHTML = '<span><i class="fas fa-spinner fa-spin"></i></span><span class="cost">Invo...</span>';
+    btn1.classList.add('disabled');
+    btn10.classList.add('disabled');
+    document.getElementById('gacha-form').submit();
+}
+</script>
 {% endblock %}

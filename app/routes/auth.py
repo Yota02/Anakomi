@@ -6,6 +6,7 @@ from app.utils import generate_reset_code
 from app.decorators import login_required
 from app.services import send_reset_email, dump_and_send_to_discord
 import time
+from datetime import date, timedelta
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -57,7 +58,30 @@ def login():
         if user and check_password_hash(user.get('password_hash', ''), password):
             session['user_id'] = user['id']
             session['dump_done'] = False
-            flash('Connexion réussie')
+            
+            # Daily Login Logic
+            today = date.today()
+            last_login = user.get('last_login_date')
+            streak = user.get('login_streak') or 0
+            
+            if last_login != today:
+                if last_login == today - timedelta(days=1):
+                    streak += 1
+                else:
+                    streak = 1
+                
+                # Reward: base 50 points + 10 points per streak day (max 100 bonus)
+                bonus = min(streak * 10, 100)
+                reward = 50 + bonus
+                
+                execute_query(
+                    f"UPDATE {tbl} SET last_login_date = %s, login_streak = %s, points = points + %s WHERE id = %s",
+                    (today, streak, reward, user['id'])
+                )
+                flash(f'Connexion réussie ! Bonus de connexion quotidienne : +{reward} points (Série: {streak} jours)')
+            else:
+                flash('Connexion réussie')
+            
             return redirect(url_for('main.index'))
         else:
             flash('Identifiants incorrects')

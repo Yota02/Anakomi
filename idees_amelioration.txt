@@ -6,6 +6,10 @@
 - [ ] Système de Recommandation : Algorithme basé sur les genres et les notes similaires.
 - [ ] Intégration d'API Externes (Jikan/AniList) : Import automatique des données et images.
 - [ ] Import de listes : Permettre aux utilisateurs d'importer leur MAL ou AniList.
+- [ ] Bouton Aléatoire : Proposer une œuvre au hasard pour les indécis.
+- [ ] Intégration Vidéo : Trailers et openings via YouTube Embed sur les fiches.
+- [ ] Calendrier des Sorties (Simulcast) : Affichage des sorties d'épisodes/jeux de la semaine.
+- [ ] Où regarder / Où jouer : Intégration de liens vers les plateformes de streaming ou stores légaux.
 
 ## 2. DESIGN & EXPÉRIENCE UTILISATEUR (UX/UI)
 - [x] Mode Sombre (Dark Mode) : Thème nocturne complet.
@@ -14,6 +18,8 @@
 - [ ] Skeleton Loaders : Améliorer la perception de vitesse au chargement.
 - [ ] Glassmorphism 2.0 : Bordures plus fines, effets de flou plus profonds, glow au survol.
 - [ ] Version PWA : Rendre le site installable sur mobile.
+- [ ] Mini Player Audio : Musique d'ambiance (Lofi/OST) commutable en bas de page.
+- [ ] Protection Anti-Spoil Avancée : Filtre masquant les textes marqués comme "spoilers".
 
 ## 3. COMMUNAUTÉ & INTERACTION
 - [ ] Temps Réel (WebSockets) : Voir les votes et résultats en direct (Battles/Sondages).
@@ -21,9 +27,29 @@
 - [ ] Système de Réponse : Permettre de commenter les avis des autres.
 - [ ] Profils Custom : Bannières, citations favorites, personnages mis en avant.
 - [ ] Succès & Badges : Gamification (ex: "Collectionneur SSS", "Critique d'Or").
+- [ ] Tournois de Popularité : Système de brackets (brackets) votés par la communauté.
+- [ ] Statistiques de Profil : Graphiques sur les goûts et la collection (Anakomi Wrapped).
+- [ ] Les Battles (Clash) : Mini-jeu de vote 1v1 entre personnages générant un classement ELO.
 
 ## 4. TECHNIQUE & PERFORMANCE
 - [ ] Optimisation Images : Conversion auto en WebP, lazy loading.
 - [ ] SEO & OpenGraph : Cartes de prévisualisation pour Discord/Twitter.
 - [ ] Cache Database : Mise en cache des tops et listes populaires pour réduire la charge.
 - [ ] Tests Unitaires : Sécuriser les fonctionnalités critiques (auth, gacha, votes).
+- [ ] Le Gourou IA : Chatbot ou barre de recherche avec IA pour des recommandations par phrases.
+- [ ] Écosystème Externe : Bot Discord Anakomi et Widgets intégrables pour Twitch/OBS.
+
+## 5. GAMIFICATION & GACHA
+- [x] Pity System : Garantie d'obtention d'un tirage rare après X tentatives infructueuses.
+- [x] Bannières Temporaires : Taux d'obtention boostés sur des thématiques précises (Ex: Spécial Shonen).
+- [x] Boutique d'Échange : Permettre de recycler les doublons Gacha contre une monnaie d'échange.
+- [x] Quêtes Quotidiennes : Système de récompenses en monnaie virtuelle via l'activité du site.
+- [x] Système de Crafting : Fusionner plusieurs cartes communes pour obtenir une carte rare.
+- [x] Calendrier de Connexion (Daily Login) : Récompenses croissantes pour chaque jour de connexion consécutif.
+
+## 6. MINI-JEUX INTÉGRÉS
+- [ ] "Guess the Anime/Game" (Style Wordle) : Deviner une œuvre par jour via des indices progressifs (images floutées, années, studios).
+- [ ] Blind Test Musical : Écouter un extrait de 5s et deviner l'opening d'anime ou l'OST de jeu vidéo.
+- [ ] "Plus Haut ou Plus Bas" (Higher or Lower) : Deviner quelle œuvre/personnage a le plus de favoris ou la meilleure note.
+- [ ] "Anakomi Idle" (Clicker Game) : Mini-jeu passif sur le profil où la collection gacha génère des points au fil du temps.
+- [ ] Machine à Pinces (UFO Catcher) : Mini-jeu d'arcade interactif pour dépenser sa monnaie virtuelle et tenter de gagner des bonus.
