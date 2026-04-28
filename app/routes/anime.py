@@ -6,6 +6,32 @@ from app.decorators import login_required
 
 anime_bp = Blueprint('anime', __name__)
 
+
+def _table_exists(table_name):
+    row = fetch_one(
+        """
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = DATABASE() AND table_name = %s
+        LIMIT 1
+        """,
+        (table_name,)
+    )
+    return bool(row)
+
+
+def _column_exists(table_name, column_name):
+    row = fetch_one(
+        """
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_schema = DATABASE() AND table_name = %s AND column_name = %s
+        LIMIT 1
+        """,
+        (table_name, column_name)
+    )
+    return bool(row)
+
 @anime_bp.route('/animes')
 def animes_list():
     q = (request.args.get('q') or '').strip()
@@ -78,16 +104,44 @@ def anime_detail(id):
     
     info = get_user_table_info()
     user_tbl = info['table']
-    reviews = fetch_all(f"""
-        SELECT r.*, u.username,
-               (SELECT GROUP_CONCAT(CONCAT(rr.emoji, ':', cnt) SEPARATOR '|')
-                FROM (SELECT review_id, emoji, COUNT(*) as cnt FROM review_reaction GROUP BY review_id, emoji) as rr
-                WHERE rr.review_id = r.id) as reactions
-        FROM review r 
-        JOIN {user_tbl} u ON r.user_id = u.id 
-        WHERE r.anime_id = %s 
+    user_tbl_quoted = f"`{user_tbl}`"
+
+    has_review_reaction = _table_exists('review_reaction')
+    has_parent_id = _column_exists('review', 'parent_id')
+
+    parent_id_sql = "r.parent_id" if has_parent_id else "NULL"
+    reactions_sql = (
+        """
+        (SELECT GROUP_CONCAT(CONCAT(rr.emoji, ':', cnt) SEPARATOR '|')
+         FROM (
+             SELECT review_id, emoji, COUNT(*) as cnt
+             FROM review_reaction
+             GROUP BY review_id, emoji
+         ) as rr
+         WHERE rr.review_id = r.id)
+        """
+        if has_review_reaction
+        else "NULL"
+    )
+
+    reviews = fetch_all(
+        f"""
+        SELECT r.id,
+               r.rating,
+               r.comment,
+               r.user_id,
+               r.anime_id,
+               r.date_created,
+               {parent_id_sql} as parent_id,
+               u.username,
+               {reactions_sql} as reactions
+        FROM review r
+        JOIN {user_tbl_quoted} u ON r.user_id = u.id
+        WHERE r.anime_id = %s
         ORDER BY r.date_created DESC
-    """, (id,))
+        """,
+        (id,)
+    )
     
     avg_rating = 0
     if reviews:
@@ -178,10 +232,11 @@ def edit_anime(id):
 def top10_users():
     info = get_user_table_info()
     user_tbl = info['table']
+    user_tbl_quoted = f"`{user_tbl}`"
     
     users_with_top10 = fetch_all(f"""
         SELECT DISTINCT u.id, u.username, COUNT(t.id) as anime_count
-        FROM {user_tbl} u
+        FROM {user_tbl_quoted} u
         JOIN user_top10 t ON u.id = t.user_id
         WHERE t.is_public = 1
         GROUP BY u.id, u.username
@@ -194,8 +249,9 @@ def top10_users():
 def view_user_top10(user_id):
     info = get_user_table_info()
     user_tbl = info['table']
+    user_tbl_quoted = f"`{user_tbl}`"
     
-    user = fetch_one(f"SELECT id, username FROM {user_tbl} WHERE id = %s", (user_id,))
+    user = fetch_one(f"SELECT id, username FROM {user_tbl_quoted} WHERE id = %s", (user_id,))
     if not user:
         flash("Utilisateur non trouvé")
         return redirect(url_for('main.index'))

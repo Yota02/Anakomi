@@ -45,6 +45,9 @@ def create_app():
     def inject_globals():
         return dict(current_user=get_current_user(), current_year=datetime.utcnow().year)
     
+    from app.database import ensure_tables
+    ensure_tables()
+    
     return app
 
 app = create_app()
