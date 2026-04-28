@@ -1,8 +1,16 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container py-5 text-center animate-fade-in">
-    <h1 class="mb-5 display-4">✨ VOUS AVEZ OBTENU...</h1>
+<!-- Reveal Animation Overlay -->
+<div id="reveal-overlay" class="reveal-overlay">
+    <div class="gacha-orb-container">
+        <div class="gacha-orb" id="gacha-orb"></div>
+        <div class="reveal-text">TIRAGE EN COURS...</div>
+    </div>
+</div>
+
+<div id="result-content" class="container py-5 text-center" style="display: none;">
+    <h1 class="mb-5 display-4 reveal-title">✨ VOUS AVEZ OBTENU...</h1>
 
     <div class="row justify-content-center">
         <div class="col-md-5">
@@ -28,22 +36,164 @@
     </div>
 </div>
 
+<!-- Flash effect element -->
+<div id="flash-effect" class="flash-effect"></div>
+
 <style>
+    .reveal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, #1a1a2e 0%, #0f0f1a 100%);
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        transition: opacity 0.5s ease-out;
+    }
+
+    .gacha-orb-container {
+        text-align: center;
+    }
+
+    .gacha-orb {
+        width: 150px;
+        height: 150px;
+        background: radial-gradient(circle, #fff 0%, #ff4757 70%, #ff6b81 100%);
+        border-radius: 50%;
+        box-shadow: 0 0 50px #ff4757, 0 0 100px #ff4757;
+        margin: 0 auto 30px;
+        animation: idle-float 2s infinite ease-in-out, orb-pulse 1s infinite alternate;
+    }
+
+    .reveal-text {
+        color: white;
+        font-size: 1.5rem;
+        font-weight: bold;
+        letter-spacing: 5px;
+        text-transform: uppercase;
+        animation: text-pulse 1s infinite alternate;
+    }
+
+    .flash-effect {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: white;
+        z-index: 10000;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    /* Animations */
+    @keyframes idle-float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-20px); }
+    }
+
+    @keyframes orb-pulse {
+        from { transform: scale(1); box-shadow: 0 0 50px #ff4757; }
+        to { transform: scale(1.1); box-shadow: 0 0 80px #ff4757, 0 0 120px #ff4757; }
+    }
+
+    @keyframes text-pulse {
+        from { opacity: 0.5; }
+        to { opacity: 1; }
+    }
+
+    @keyframes shake {
+        0% { transform: translate(0, 0); }
+        10% { transform: translate(-10px, -10px); }
+        20% { transform: translate(10px, 10px); }
+        30% { transform: translate(-10px, 10px); }
+        40% { transform: translate(10px, -10px); }
+        50% { transform: translate(-10px, -10px); }
+        60% { transform: translate(10px, 10px); }
+        70% { transform: translate(-10px, 10px); }
+        80% { transform: translate(10px, -10px); }
+        90% { transform: translate(-10px, -10px); }
+        100% { transform: translate(0, 0); }
+    }
+
+    @keyframes flash-anim {
+        0% { opacity: 0; }
+        50% { opacity: 1; }
+        100% { opacity: 0; }
+    }
+
+    .shake-active {
+        animation: shake 0.1s infinite !important;
+    }
+
+    .flash-active {
+        animation: flash-anim 0.4s ease-out forwards;
+    }
+
     .gacha-card {
         border: 4px solid gold;
         border-radius: 20px;
         background: linear-gradient(45deg, #fff, #f8f9fa);
-        animation: shine 2s infinite linear;
+        animation: card-reveal 1s ease-out;
     }
-    @keyframes shine {
-        0% { box-shadow: 0 0 10px gold; }
-        50% { box-shadow: 0 0 30px #ff4757; }
-        100% { box-shadow: 0 0 10px gold; }
+
+    .reveal-title {
+        animation: title-reveal 1.5s ease-out;
     }
+
+    @keyframes card-reveal {
+        from { transform: scale(0.5) rotateY(180deg); opacity: 0; }
+        to { transform: scale(1) rotateY(0); opacity: 1; }
+    }
+
+    @keyframes title-reveal {
+        from { transform: translateY(-50px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
     .bg-brand { background-color: #ff4757; }
     .btn-brand { background-color: #ff4757; color: white; }
     .btn-brand:hover { background-color: #e84118; color: white; }
     .btn-outline-brand { border-color: #ff4757; color: #ff4757; }
     .btn-outline-brand:hover { background-color: #ff4757; color: white; }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const orb = document.getElementById('gacha-orb');
+    const overlay = document.getElementById('reveal-overlay');
+    const content = document.getElementById('result-content');
+    const flash = document.getElementById('flash-effect');
+
+    // Sequence:
+    // 1. Initial wait (1s)
+    // 2. Start shaking (1s)
+    // 3. Flash + Hide overlay + Show result
+    
+    setTimeout(() => {
+        orb.classList.add('shake-active');
+        
+        setTimeout(() => {
+            // Trigger Flash
+            flash.classList.add('flash-active');
+            
+            // Switch content
+            overlay.style.display = 'none';
+            content.style.display = 'block';
+            
+            // Remove flash after animation
+            setTimeout(() => {
+                flash.classList.remove('flash-active');
+            }, 500);
+            
+        }, 1200); // Shaking duration
+        
+    }, 800); // Initial delay
+});
+</script>
 {% endblock %}
+

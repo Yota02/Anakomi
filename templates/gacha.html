@@ -13,9 +13,14 @@
                     <div class="display-3 fw-bold text-brand">{{ points }}</div>
                 </div>
 
-                <form action="{{ url_for('extra.gacha_roll') }}" method="POST">
-                    <button type="submit" class="btn btn-brand btn-lg w-100 py-3 mb-4" {% if points < 10 %}disabled{% endif %}>
-                        <i class="fas fa-dice me-2"></i> TIRER UNE CARTE (10 pts)
+                <form id="gacha-form" action="{{ url_for('extra.gacha_roll') }}" method="POST">
+                    <button type="submit" id="roll-button" class="btn btn-brand btn-lg w-100 py-3 mb-4" {% if points < 10 %}disabled{% endif %}>
+                        <span id="button-text">
+                            <i class="fas fa-dice me-2"></i> TIRER UNE CARTE (10 pts)
+                        </span>
+                        <span id="button-spinner" style="display: none;">
+                            <i class="fas fa-spinner fa-spin me-2"></i> PRÉPARATION DU TIRAGE...
+                        </span>
                     </button>
                 </form>
 
@@ -27,6 +32,18 @@
         </div>
     </div>
 </div>
+
+<script>
+document.getElementById('gacha-form').addEventListener('submit', function() {
+    const btn = document.getElementById('roll-button');
+    const text = document.getElementById('button-text');
+    const spinner = document.getElementById('button-spinner');
+    
+    btn.disabled = true;
+    text.style.display = 'none';
+    spinner.style.display = 'inline';
+});
+</script>
 
 <style>
     .text-brand { color: #ff4757; }
