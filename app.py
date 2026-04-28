@@ -1,4 +1,5 @@
 from app import create_app
+from app.extensions import socketio
 import os
 from app.database import get_connection, ensure_tables
 import logging
@@ -29,5 +30,5 @@ if __name__ == '__main__':
     ensure_tables()
     logger.info("✅ Structure de la base de données vérifiée.")
 
-    # Démarrer l'app (pour dev local)
-    app.run(host=host, port=port, debug=debug)
+    # Démarrer l'app (pour dev local) avec SocketIO
+    socketio.run(app, host=host, port=port, debug=debug, allow_unsafe_werkzeug=True)

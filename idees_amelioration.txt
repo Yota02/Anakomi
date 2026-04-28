@@ -22,7 +22,7 @@
 - [ ] Protection Anti-Spoil Avancée : Filtre masquant les textes marqués comme "spoilers".
 
 ## 3. COMMUNAUTÉ & INTERACTION
-- [ ] Temps Réel (WebSockets) : Voir les votes et résultats en direct (Battles/Sondages).
+- [x] Temps Réel (WebSockets) : Voir les votes et résultats en direct (Battles/Sondages).
 - [ ] Fil d'Actualité : Suivre l'activité des autres utilisateurs (avis, ajouts).
 - [ ] Système de Réponse : Permettre de commenter les avis des autres.
 - [ ] Profils Custom : Bannières, citations favorites, personnages mis en avant.

@@ -18,7 +18,7 @@
                 {% endif %}
                 <div class="card-body p-4">
                     <h2 class="card-title fw-bold mb-3">{{ participant.name }}</h2>
-                    <h3 class="display-5 text-brand fw-bold mb-4">{{ participant.votes }} VOTES</h3>
+                    <h3 class="display-5 text-brand fw-bold mb-4"><span id="votes-{{ participant.id }}">{{ participant.votes }}</span> VOTES</h3>
                     
                     <form action="{{ url_for('extra.battle_vote', participant_id=participant.id) }}" method="POST">
                         <input type="hidden" name="battle_id" value="{{ battle.id }}">
@@ -37,8 +37,31 @@
     </div>
 </div>
 
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        socket.emit('join_battle', { battle_id: {{ battle.id }} });
+
+        socket.on('battle_update', (data) => {
+            if (data.battle_id == {{ battle.id }}) {
+                data.participants.forEach(p => {
+                    const votesEl = document.getElementById('votes-' + p.id);
+                    if (votesEl) {
+                        // Animation simple pour le changement de score
+                        votesEl.style.transform = 'scale(1.2)';
+                        votesEl.innerText = p.votes;
+                        setTimeout(() => {
+                            votesEl.style.transform = 'scale(1)';
+                        }, 200);
+                    }
+                });
+            }
+        });
+    });
+</script>
+
 <style>
     .text-brand { color: #ff4757; }
+    #votes-{{ participant_id }} { transition: transform 0.2s; display: inline-block; }
     .btn-brand { background-color: #ff4757; color: white; }
     .btn-brand:hover { background-color: #e84118; color: white; }
     .participant-card { border-radius: 20px; border: none; overflow: hidden; transition: transform 0.3s; }

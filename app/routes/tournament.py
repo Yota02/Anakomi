@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from app.database import fetch_all, fetch_one, execute_query
 from app.decorators import login_required
+from app.extensions import socketio
 import uuid
 import random
 import string
@@ -214,6 +215,17 @@ def tournament_vote():
                 "INSERT INTO tournament_vote (match_id, participant_id, session_id, user_id) VALUES (%s, %s, %s, %s)",
                 (match_id, participant_id, str(session_id), user_id)
             )
+            
+            # Real-time update
+            v1 = fetch_one("SELECT COUNT(*) as count FROM tournament_vote WHERE match_id = %s AND participant_id = %s", (match_id, match['participant1_id']))['count']
+            v2 = fetch_one("SELECT COUNT(*) as count FROM tournament_vote WHERE match_id = %s AND participant_id = %s", (match_id, match['participant2_id']))['count']
+            
+            socketio.emit('tournament_update', {
+                'match_id': match_id,
+                'p1_votes': v1,
+                'p2_votes': v2
+            }, room=f"tournament_{match['tournament_id']}")
+
             flash("Vote enregistré !")
         except Exception:
             flash("Vous avez déjà voté pour ce match.")

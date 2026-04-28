@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import os
 import logging
 from app.utils import get_current_user
+from app.extensions import socketio
 
 def create_app():
     app = Flask(__name__, 
@@ -28,6 +29,12 @@ def create_app():
     
     # Logging minimal
     logging.basicConfig(level=logging.INFO)
+    
+    # Initialize extensions
+    socketio.init_app(app)
+    
+    with app.app_context():
+        from app import socket_events
     
     # Register Blueprints
     from app.routes.main import main_bp

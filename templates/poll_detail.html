@@ -16,10 +16,10 @@
                         <div class="mb-3">
                             <div class="d-flex justify-content-between mb-1">
                                 <strong>{{ option.option_text }}</strong>
-                                <span>{{ option.vote_count }} vote(s) ({{ percent | round(1) }}%)</span>
+                                <span id="label-{{ option.id }}"><span id="count-{{ option.id }}">{{ option.vote_count }}</span> vote(s) (<span id="percent-{{ option.id }}">{{ percent | round(1) }}</span>%)</span>
                             </div>
                             <div class="progress" style="height: 10px;">
-                                <div class="progress-bar {% if user_vote.option_id == option.id %}bg-danger{% else %}bg-secondary{% endif %}" 
+                                <div id="bar-{{ option.id }}" class="progress-bar {% if user_vote.option_id == option.id %}bg-danger{% else %}bg-secondary{% endif %}" 
                                      role="progressbar" 
                                      style="width: {{ percent }}%;" 
                                      aria-valuenow="{{ percent }}" 
@@ -30,7 +30,7 @@
                     {% endfor %}
                 </div>
                 
-                <p class="text-center mt-4 text-muted">Total des votes : {{ total_votes }}</p>
+                <p class="text-center mt-4 text-muted">Total des votes : <span id="total-votes">{{ total_votes }}</span></p>
                 <div class="text-center mt-4">
                     <a href="{{ url_for('poll.list_polls') }}" class="btn btn-outline-secondary">Retour à la liste</a>
                 </div>
@@ -51,4 +51,33 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        socket.emit('join_poll', { poll_id: {{ poll.id }} });
+
+        socket.on('poll_update', (data) => {
+            if (data.poll_id == {{ poll.id }}) {
+                const totalVotes = data.total_votes;
+                const totalVotesEl = document.getElementById('total-votes');
+                if (totalVotesEl) totalVotesEl.innerText = totalVotes;
+
+                data.options.forEach(opt => {
+                    const countEl = document.getElementById('count-' + opt.id);
+                    const percentEl = document.getElementById('percent-' + opt.id);
+                    const barEl = document.getElementById('bar-' + opt.id);
+
+                    if (countEl) countEl.innerText = opt.vote_count;
+                    
+                    const percent = totalVotes > 0 ? (opt.vote_count / totalVotes * 100).toFixed(1) : 0;
+                    if (percentEl) percentEl.innerText = percent;
+                    if (barEl) {
+                        barEl.style.width = percent + '%';
+                        barEl.setAttribute('aria-valuenow', percent);
+                    }
+                });
+            }
+        });
+    });
+</script>
 {% endblock %}

@@ -207,7 +207,7 @@
                                     <span class="fw-bold small">{{ match.p1_details.name }}</span>
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
-                                    <span class="badge bg-dark">{{ match.p1_votes }}</span>
+                                    <span class="badge bg-dark" id="match-{{ match.id }}-p1-votes">{{ match.p1_votes }}</span>
                                     {% if not match.winner_id and match.id not in user_votes %}
                                         <form action="{{ url_for('tournament.tournament_vote') }}" method="POST" class="m-0">
                                             <input type="hidden" name="match_id" value="{{ match.id }}">
@@ -228,7 +228,7 @@
                                     <span class="fw-bold small">{{ match.p2_details.name }}</span>
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
-                                    <span class="badge bg-dark">{{ match.p2_votes }}</span>
+                                    <span class="badge bg-dark" id="match-{{ match.id }}-p2-votes">{{ match.p2_votes }}</span>
                                     {% if not match.winner_id and match.id not in user_votes %}
                                         <form action="{{ url_for('tournament.tournament_vote') }}" method="POST" class="m-0">
                                             <input type="hidden" name="match_id" value="{{ match.id }}">
@@ -287,6 +287,21 @@ function copyUrl() {
     navigator.clipboard.writeText(copyText.value);
     alert("Lien copié !");
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    socket.emit('join_tournament', { tournament_id: {{ tournament.id }} });
+
+    socket.on('tournament_update', (data) => {
+        const p1VotesEl = document.getElementById(`match-${data.match_id}-p1-votes`);
+        const p2VotesEl = document.getElementById(`match-${data.match_id}-p2-votes`);
+        
+        if (p1VotesEl) p1VotesEl.innerText = data.p1_votes;
+        if (p2VotesEl) p2VotesEl.innerText = data.p2_votes;
+        
+        // Bonus: if we are in the focused duel mode and it's the current match, we might want to refresh
+        // but for now let's focus on the brackets as a first step.
+    });
+});
 </script>
 
 <style>

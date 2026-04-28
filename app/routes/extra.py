@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from app.database import fetch_all, fetch_one, execute_query
-from app.database import fetch_all, fetch_one, execute_query
 from app.decorators import login_required
+from app.extensions import socketio
 import random
 from collections import Counter
 from datetime import date, timedelta
@@ -619,6 +619,19 @@ def view_battle(id):
 def battle_vote(participant_id):
     execute_query("UPDATE battle_participant SET votes = votes + 1 WHERE id = %s", (participant_id,))
     battle_id = request.form.get('battle_id')
+    
+    # Real-time update
+    participants = fetch_all("""
+        SELECT id, votes 
+        FROM battle_participant 
+        WHERE battle_id = %s
+    """, (battle_id,))
+    
+    socketio.emit('battle_update', {
+        'battle_id': battle_id,
+        'participants': participants
+    }, room=f"battle_{battle_id}")
+
     flash("Vote enregistré !")
     return redirect(url_for('extra.view_battle', id=battle_id))
 

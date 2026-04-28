@@ -1,5 +1,6 @@
 from app import create_app
 from app.database import get_connection
+from app.extensions import socketio
 import os
 import logging
 
@@ -29,4 +30,4 @@ if __name__ == '__main__':
         logger.error(f"❌ Erreur de connexion à MySQL: {e}")
         # On ne quitte pas forcément, car resolve_user_table a des fallbacks
     
-    app.run(host=host, port=port, debug=debug)
+    socketio.run(app, host=host, port=port, debug=debug, allow_unsafe_werkzeug=True)

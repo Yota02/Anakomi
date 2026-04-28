@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from app.database import fetch_all, fetch_one, execute_query
 from app.decorators import login_required
+from app.extensions import socketio
 
 poll_bp = Blueprint('poll', __name__)
 
@@ -87,8 +88,25 @@ def poll_vote(poll_id):
             "INSERT INTO poll_vote (poll_id, option_id, user_id) VALUES (%s, %s, %s)",
             (poll_id, option_id, user_id)
         )
+        
+        # Real-time update
+        options = fetch_all("""
+            SELECT po.id, COUNT(pv.id) as vote_count 
+            FROM poll_option po 
+            LEFT JOIN poll_vote pv ON po.id = pv.option_id 
+            WHERE po.poll_id = %s 
+            GROUP BY po.id
+        """, (poll_id,))
+        
+        total_votes = sum(o['vote_count'] for o in options)
+        socketio.emit('poll_update', {
+            'poll_id': poll_id,
+            'options': options,
+            'total_votes': total_votes
+        }, room=f"poll_{poll_id}")
+
         flash("Votre vote a été pris en compte !")
-    except Exception:
+    except Exception as e:
         flash("Vous avez déjà voté pour ce sondage.")
         
     return redirect(url_for('poll.poll_detail', poll_id=poll_id))
