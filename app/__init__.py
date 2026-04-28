@@ -12,9 +12,16 @@ def create_app():
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY') or 'change_me_in_production'
     
     # Sécurité des cookies
+    # Important: en local (HTTP), un cookie Secure n'est pas renvoyé par le navigateur,
+    # ce qui casse les flux basés sur la session (ex: reset mdp en 2 étapes).
+    secure_cookie_env = os.getenv('SESSION_COOKIE_SECURE')
+    if secure_cookie_env is None:
+        app.config['SESSION_COOKIE_SECURE'] = False
+    else:
+        app.config['SESSION_COOKIE_SECURE'] = secure_cookie_env == '1'
+
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = os.getenv('SESSION_COOKIE_SAMESITE', 'Lax')
-    app.config['SESSION_COOKIE_SECURE'] = os.getenv('SESSION_COOKIE_SECURE', '1') == '1'
     
     # Durée de session par défaut
     app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=int(os.getenv('SESSION_LIFETIME_DAYS', '7')))
