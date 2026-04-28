@@ -245,6 +245,22 @@ def top10_users():
     
     return render_template('top10_users.html', users=users_with_top10)
 
+@anime_bp.route('/top10/general')
+def general_top10():
+    top10 = fetch_all("""
+        SELECT a.id, a.title, a.cover_url, a.genre, a.year,
+               SUM(11 - t.rank_position) as score,
+               COUNT(t.id) as mentions
+        FROM user_top10 t
+        JOIN anime a ON t.anime_id = a.id
+        WHERE t.is_public = 1
+        GROUP BY a.id, a.title, a.cover_url, a.genre, a.year
+        ORDER BY score DESC, mentions DESC
+        LIMIT 10
+    """)
+    
+    return render_template('general_top10.html', top10=top10)
+
 @anime_bp.route('/top10/user/<int:user_id>')
 def view_user_top10(user_id):
     info = get_user_table_info()

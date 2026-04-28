@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+.podium-container {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    margin-top: 50px;
+    margin-bottom: 50px;
+    gap: 15px;
+}
+.podium-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 250px;
+    position: relative;
+}
+.podium-block {
+    width: 100%;
+    color: white;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 15px;
+    font-size: 2rem;
+    font-weight: bold;
+    border-radius: 10px 10px 0 0;
+    box-shadow: 0 -5px 15px rgba(0,0,0,0.1);
+}
+.podium-1 {
+    order: 2;
+}
+.podium-1 .podium-block {
+    height: 180px;
+    background: linear-gradient(135deg, #ffd700, #daa520);
+}
+.podium-2 {
+    order: 1;
+}
+.podium-2 .podium-block {
+    height: 120px;
+    background: linear-gradient(135deg, #e0e0e0, #a9a9a9);
+}
+.podium-3 {
+    order: 3;
+}
+.podium-3 .podium-block {
+    height: 80px;
+    background: linear-gradient(135deg, #cd7f32, #8b4513);
+}
+
+.podium-card {
+    background: var(--bg-card);
+    border-radius: 15px;
+    padding: 10px;
+    text-align: center;
+    width: 100%;
+    box-shadow: var(--card-shadow);
+    margin-bottom: 15px;
+    border: 1px solid var(--glass-border);
+    transition: var(--transition);
+}
+.podium-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--accent-primary);
+}
+.podium-card img {
+    width: 100%;
+    height: 300px;
+    object-fit: cover;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+.podium-card .title {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.podium-card .score {
+    color: var(--accent-primary);
+    font-weight: bold;
+}
+.podium-card .mentions {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+.medal {
+    position: absolute;
+    top: -20px;
+    right: -10px;
+    font-size: 2.5rem;
+    filter: drop-shadow(0 2px 5px rgba(0,0,0,0.2));
+    z-index: 10;
+}
+
+.rest-of-top .list-group-item {
+    background: var(--bg-card);
+    border-color: var(--glass-border);
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: var(--transition);
+}
+.rest-of-top .list-group-item:hover {
+    background: rgba(230, 57, 70, 0.05);
+}
+.rest-of-top .rank {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--text-muted);
+    width: 40px;
+    text-align: center;
+}
+.rest-of-top img {
+    width: 60px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 5px;
+}
+</style>
+
+<div class="mb-4 text-center">
+    <h1><i class="fas fa-trophy text-warning"></i> Top 10 Général</h1>
+    <p class="text-muted">Le classement ultime basé sur les Tops 10 de la communauté</p>
+</div>
+
+{% if top10 %}
+    <div class="podium-container">
+        {% for item in top10[:3] %}
+            {% set index = loop.index %}
+            <div class="podium-step podium-{{ index }}">
+                <div class="podium-card">
+                    {% if index == 1 %}
+                        <div class="medal">🥇</div>
+                    {% elif index == 2 %}
+                        <div class="medal">🥈</div>
+                    {% elif index == 3 %}
+                        <div class="medal">🥉</div>
+                    {% endif %}
+                    
+                    {% if item.cover_url %}
+                        <a href="{{ url_for('anime.anime_detail', id=item.id) }}">
+                            <img src="{{ item.cover_url }}" alt="{{ item.title }}">
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('anime.anime_detail', id=item.id) }}">
+                            <div class="d-flex align-items-center justify-content-center bg-secondary text-white mb-2" style="height: 300px; border-radius: 10px;">
+                                <i class="fas fa-image fa-3x"></i>
+                            </div>
+                        </a>
+                    {% endif %}
+                    <div class="title" title="{{ item.title }}">{{ item.title }}</div>
+                    <div class="score"><i class="fas fa-star"></i> {{ item.score }} pts</div>
+                    <div class="mentions">{{ item.mentions }} mention{{ 's' if item.mentions > 1 else '' }}</div>
+                </div>
+                <div class="podium-block">
+                    {{ index }}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    {% if top10|length > 3 %}
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="rest-of-top list-group mb-5 shadow-sm">
+                {% for item in top10[3:] %}
+                <a href="{{ url_for('anime.anime_detail', id=item.id) }}" class="list-group-item list-group-item-action">
+                    <div class="rank">{{ loop.index + 3 }}</div>
+                    {% if item.cover_url %}
+                        <img src="{{ item.cover_url }}" alt="{{ item.title }}">
+                    {% else %}
+                        <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded" style="width: 60px; height: 80px;">
+                            <i class="fas fa-image"></i>
+                        </div>
+                    {% endif %}
+                    <div class="flex-grow-1">
+                        <h5 class="mb-1">{{ item.title }}</h5>
+                        <small class="text-muted">{{ item.genre }}</small>
+                    </div>
+                    <div class="text-end">
+                        <div class="fw-bold text-primary">{{ item.score }} pts</div>
+                        <small class="text-muted">{{ item.mentions }} mention{{ 's' if item.mentions > 1 else '' }}</small>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+{% else %}
+    <div class="text-center py-5">
+        <h3>Le classement est vide !</h3>
+        <p class="text-muted">Aucun top 10 public n'a encore été créé.</p>
+        <a href="{{ url_for('anime.my_top10') }}" class="btn btn-brand mt-3">Créer mon top 10</a>
+    </div>
+{% endif %}
+{% endblock %}

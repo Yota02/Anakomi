@@ -361,6 +361,9 @@
                             Tops
                         </a>
                         <ul class="dropdown-menu">
+                            <li><a class="dropdown-item fw-bold" href="{{ url_for('anime.general_top10') }}" style="color: var(--accent-primary);"><i class="fas fa-trophy text-warning"></i> Top 10 Général Animes</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><h6 class="dropdown-header">Tops Utilisateurs</h6></li>
                             <li><a class="dropdown-item" href="{{ url_for('anime.top10_users') }}">Top 10 Animes</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('videogame.videogame_top10_users') }}">Top 10 Jeux Vidéo</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('waifu.waifu_top5_users') }}">Top 10 Personnages</a></li>
