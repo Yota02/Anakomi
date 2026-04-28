@@ -1,3 +1,6 @@
+from gevent import monkey
+monkey.patch_all()
+
 from app import create_app
 from app.database import get_connection
 from app.extensions import socketio
