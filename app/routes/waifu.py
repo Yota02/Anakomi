@@ -170,7 +170,29 @@ def add_waifu_review(waifu_id):
             )
             flash('Avis ajouté avec succès')
     
+    # Automatiquement mettre à jour la rareté basée sur la nouvelle moyenne
+    update_waifu_rarity(waifu_id)
+    
     return redirect(url_for('waifu.waifu_detail', id=waifu_id))
+
+def update_waifu_rarity(waifu_id):
+    stats = fetch_one("""
+        SELECT COALESCE(AVG(rating), 0) as avg_rating, COUNT(id) as count 
+        FROM waifu_review 
+        WHERE waifu_id = %s AND parent_id IS NULL
+    """, (waifu_id,))
+    
+    if stats and stats['count'] > 0:
+        avg = stats['avg_rating']
+        new_rarity = 'Commune'
+        if avg >= 4.5:
+            new_rarity = 'Légendaire'
+        elif avg >= 4.0:
+            new_rarity = 'Épique'
+        elif avg >= 3.0:
+            new_rarity = 'Rare'
+        
+        execute_query("UPDATE waifu SET rarity = %s WHERE id = %s", (new_rarity, waifu_id))
 
 @waifu_bp.route('/my-waifu-top5')
 @login_required

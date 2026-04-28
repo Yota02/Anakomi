@@ -1,62 +1,192 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container py-5 text-center">
-    <h1 class="mb-5 display-4 fw-bold">🃏 Ma Collection de Cartes</h1>
+<style>
+body {
+    background-color: #0d1123;
+    color: #fff;
+}
+.collection-container {
+    background: radial-gradient(circle at center, #1b2845 0%, #000000 100%);
+    background-image: url('https://www.transparenttextures.com/patterns/stardust.png'), radial-gradient(circle at center, #2e1c45 0%, #000 100%);
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 0 50px rgba(0,0,0,0.8);
+    min-height: 80vh;
+}
 
-    <div class="row row-cols-1 row-cols-md-3 row-cols-lg-4 g-4">
-        {% for item in items %}
-        <div class="col">
-            <div class="card h-100 shadow-sm collection-card position-relative">
-                {% if item.image_url %}
-                    <img src="{{ item.image_url }}" class="card-img-top" alt="{{ item.name }}" style="height: 300px; object-fit: cover; border-radius: 10px;">
-                {% else %}
-                    <div class="bg-dark text-white d-flex align-items-center justify-content-center" style="height: 300px; border-radius: 10px;">
-                        <span>Pas d'image</span>
-                    </div>
+.character-card {
+    position: relative;
+    width: 100%;
+    height: 400px;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+}
+.character-card:hover {
+    transform: translateY(-10px);
+}
+.rarity-5 { box-shadow: 0 0 20px rgba(255, 215, 0, 0.4); border-color: rgba(255, 215, 0, 0.6); }
+.rarity-5:hover { box-shadow: 0 0 40px rgba(255, 215, 0, 0.8); }
+.rarity-4 { box-shadow: 0 0 20px rgba(186, 85, 211, 0.4); border-color: rgba(186, 85, 211, 0.6); }
+.rarity-4:hover { box-shadow: 0 0 40px rgba(186, 85, 211, 0.8); }
+.rarity-3 { box-shadow: 0 0 20px rgba(0, 191, 255, 0.4); border-color: rgba(0, 191, 255, 0.6); }
+.rarity-3:hover { box-shadow: 0 0 40px rgba(0, 191, 255, 0.8); }
+.rarity-1 { box-shadow: 0 0 20px rgba(169, 169, 169, 0.4); border-color: rgba(169, 169, 169, 0.6); }
+
+.character-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.character-info {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 40px 15px 15px;
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, transparent 100%);
+    text-align: left;
+}
+
+.stars {
+    color: #ffd700;
+    font-size: 1rem;
+    margin-bottom: 2px;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+}
+
+.character-name {
+    font-size: 1.5rem;
+    font-weight: 800;
+    margin: 0;
+    font-style: italic;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+.character-theme {
+    font-size: 0.7rem;
+    color: #ffdf00;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(255, 223, 0, 0.5);
+}
+
+.quantity-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    border: 1px solid rgba(255,255,255,0.3);
+    backdrop-filter: blur(5px);
+    z-index: 2;
+}
+
+.card-actions {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+.action-btn {
+    background: rgba(0,0,0,0.7);
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    border-radius: 5px;
+    padding: 5px 10px;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+}
+.action-btn:hover {
+    background: #ffdf00;
+    color: #000;
+    border-color: #ffdf00;
+}
+</style>
+
+<div class="container py-5">
+    <div class="collection-container">
+        <div class="d-flex justify-content-between align-items-center mb-5">
+            <h1 class="display-4 fw-bold mb-0 text-white" style="text-shadow: 0 0 20px rgba(255,255,255,0.3);"><i class="fas fa-book-open me-3 text-warning"></i>Ma Collection</h1>
+            <a href="{{ url_for('extra.gacha') }}" class="btn btn-warning btn-lg rounded-pill px-4 fw-bold shadow"><i class="fas fa-dice-d20 me-2"></i>Invoquer</a>
+        </div>
+
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+            {% for item in items %}
+                {% set rarity_class = 'rarity-1' %}
+                {% set stars = 1 %}
+                {% if item.rarity == 'Légendaire' %}
+                    {% set rarity_class = 'rarity-5' %}
+                    {% set stars = 5 %}
+                {% elif item.rarity == 'Épique' %}
+                    {% set rarity_class = 'rarity-4' %}
+                    {% set stars = 4 %}
+                {% elif item.rarity == 'Rare' %}
+                    {% set rarity_class = 'rarity-3' %}
+                    {% set stars = 3 %}
                 {% endif %}
-                <div class="card-body">
-                    <h5 class="card-title fw-bold">{{ item.name }}</h5>
-                    <p class="text-muted small mb-1">Rareté: {{ item.rarity }}</p>
-                    <span class="position-absolute top-0 end-0 badge rounded-pill bg-brand m-2 fs-6">
-                        x{{ item.quantity }}
-                    </span>
+
+            <div class="col">
+                <div class="character-card {{ rarity_class }}">
+                    <div class="quantity-badge">x{{ item.quantity }}</div>
                     
-                    {% if item.quantity > 1 %}
-                    <form action="{{ url_for('extra.gacha_exchange') }}" method="POST" class="d-inline">
-                        <input type="hidden" name="waifu_id" value="{{ item.waifu_id }}">
-                        <button type="submit" class="btn btn-sm btn-outline-secondary w-100 mt-2">Échanger Doublon (+5 pts)</button>
-                    </form>
+                    <div class="card-actions">
+                        {% if item.quantity > 1 %}
+                        <form action="{{ url_for('extra.gacha_exchange') }}" method="POST" class="m-0">
+                            <input type="hidden" name="waifu_id" value="{{ item.waifu_id }}">
+                            <button type="submit" class="action-btn" title="Vendre un doublon (+5 pts)"><i class="fas fa-coins"></i> Vendre</button>
+                        </form>
+                        {% endif %}
+                        
+                        {% if item.quantity >= 5 and item.rarity == 'Commune' %}
+                        <form action="{{ url_for('extra.gacha_craft') }}" method="POST" class="m-0">
+                            <input type="hidden" name="waifu_id" value="{{ item.waifu_id }}">
+                            <button type="submit" class="action-btn text-warning" style="border-color: #ffdf00;" title="Fusionner 5 cartes en Rare"><i class="fas fa-magic"></i> Fusionner</button>
+                        </form>
+                        {% endif %}
+                    </div>
+
+                    {% if item.image_url %}
+                        <img src="{{ item.image_url }}" class="character-image" alt="{{ item.name }}">
+                    {% else %}
+                        <div class="bg-dark text-white d-flex align-items-center justify-content-center h-100">
+                            <span class="opacity-50">Pas d'image</span>
+                        </div>
                     {% endif %}
                     
-                    {% if item.quantity >= 5 and item.rarity == 'Commune' %}
-                    <form action="{{ url_for('extra.gacha_craft') }}" method="POST" class="d-inline">
-                        <input type="hidden" name="waifu_id" value="{{ item.waifu_id }}">
-                        <button type="submit" class="btn btn-sm btn-outline-warning w-100 mt-2">Fusionner x5 en Rare</button>
-                    </form>
-                    {% endif %}
+                    <div class="character-info">
+                        <div class="stars">
+                            {% for i in range(stars) %}
+                            <i class="fas fa-star"></i>
+                            {% endfor %}
+                        </div>
+                        <div class="character-theme">
+                            <i class="fas fa-bookmark me-1"></i> {{ item.theme }}
+                        </div>
+                        <h2 class="character-name">{{ item.name }}</h2>
+                    </div>
                 </div>
             </div>
+            {% else %}
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-box-open fs-1 text-muted mb-3" style="font-size: 4rem;"></i>
+                <h3 class="text-muted">Votre collection est vide...</h3>
+                <p class="text-white-50">Allez dans le Gacha pour faire vos premières invocations !</p>
+            </div>
+            {% endfor %}
         </div>
-        {% else %}
-        <div class="col-12 text-center py-5">
-            <h3 class="text-muted">Votre collection est vide...</h3>
-            <a href="{{ url_for('extra.gacha') }}" class="btn btn-brand btn-lg mt-3">Aller au Gacha</a>
-        </div>
-        {% endfor %}
-    </div>
-
-    <div class="mt-5 pt-5">
-        <a href="{{ url_for('extra.gacha') }}" class="btn btn-brand btn-lg px-5">Tirer une carte</a>
-        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary btn-lg px-5">Retour</a>
     </div>
 </div>
-
-<style>
-    .bg-brand { background-color: #ff4757; }
-    .btn-brand { background-color: #ff4757; color: white; }
-    .btn-brand:hover { background-color: #e84118; color: white; }
-    .collection-card { border-radius: 15px; overflow: hidden; border: 2px solid #ddd; transition: transform 0.2s; }
-    .collection-card:hover { transform: translateY(-10px); border-color: #ff4757; }
-</style>
 {% endblock %}

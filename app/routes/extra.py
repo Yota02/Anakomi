@@ -4,7 +4,7 @@ from app.database import fetch_all, fetch_one, execute_query
 from app.decorators import login_required
 import random
 from collections import Counter
-from datetime import date
+from datetime import date, timedelta
 
 extra_bp = Blueprint('extra', __name__)
 
@@ -287,15 +287,31 @@ def gacha():
     user_id = session['user_id']
     user = fetch_one("SELECT points, gacha_pity FROM user WHERE id = %s", (user_id,))
     
-    # Fetch daily quests
+    # Rotation logic
     today = date.today()
+    week_num = today.isocalendar()[1]
+    
+    rotation = ['shonen', 'seinen', 'shojo', 'videogame']
+    active_featured = rotation[week_num % len(rotation)]
+    
+    # Calculate time left (until next Monday at 00:00)
+    days_until_next_week = 7 - today.weekday()
+    # For a simple display, we'll just show the date of expiration
+    expires_at = today + timedelta(days=days_until_next_week)
+    
+    # Fetch daily quests
     quests = fetch_all("SELECT * FROM user_quest WHERE user_id = %s AND DATE(created_at) = %s", (user_id, today))
     if not quests:
         # Create default quests
         execute_query("INSERT INTO user_quest (user_id, quest_type, progress, target, completed, created_at) VALUES (%s, 'gacha_rolls', 0, 5, False, %s)", (user_id, today))
         quests = fetch_all("SELECT * FROM user_quest WHERE user_id = %s AND created_at = %s", (user_id, today))
     
-    return render_template('gacha.html', points=user['points'] if user else 0, pity=user['gacha_pity'] if user else 0, quests=quests)
+    return render_template('gacha.html', 
+                           points=user['points'] if user else 0, 
+                           pity=user['gacha_pity'] if user else 0, 
+                           quests=quests,
+                           active_featured=active_featured,
+                           expires_at=expires_at)
 
 @extra_bp.route('/gacha/roll', methods=['POST'])
 @login_required
@@ -304,10 +320,12 @@ def gacha_roll():
     banner = request.form.get('banner', 'standard')
     amount = int(request.form.get('amount', 1))
     
-    user = fetch_one("SELECT points, gacha_pity FROM user WHERE id = %s", (user_id,))
+    user = fetch_one("SELECT username, points, gacha_pity FROM user WHERE id = %s", (user_id,))
     
     roll_cost = 10 * amount
-    if not user or user['points'] < roll_cost:
+    is_admin = user and user['username'] == 'Alexis'
+    
+    if not is_admin and (not user or user['points'] < roll_cost):
         flash("Pas assez de points !")
         return redirect(url_for('extra.gacha'))
     
@@ -322,30 +340,47 @@ def gacha_roll():
             pity = 0 # reset
         else:
             roll = random.random()
-            if roll < 0.05: # 5% Legendaire
+            if roll < 0.01: # 1% Legendaire
                 rarity_filter = "rarity = 'Légendaire'"
                 pity = 0
-            elif roll < 0.20: # 15% Epique
+            elif roll < 0.16: # 15% Epique (0.01 + 0.15)
                 rarity_filter = "rarity = 'Épique'"
-            elif roll < 0.50: # 30% Rare
+            elif roll < 0.46: # 30% Rare (0.16 + 0.30)
                 rarity_filter = "rarity = 'Rare'"
-            else: # 50% Commune
+            else: # 54% Commune
                 rarity_filter = "rarity = 'Commune'"
                 
         # Banner logic
+        base_query = f"""
+            SELECT w.*, a.title as anime_title, v.title as videogame_title, a.genre as anime_genre 
+            FROM waifu w 
+            LEFT JOIN anime a ON w.anime_id = a.id 
+            LEFT JOIN videogame v ON w.videogame_id = v.id
+            WHERE {rarity_filter}
+        """
+        
         if banner == 'shonen':
-            # Try to get a shonen waifu
-            waifu = fetch_one(f"SELECT w.* FROM waifu w JOIN anime a ON w.anime_id = a.id WHERE (a.genre LIKE '%%Shonen%%' OR a.genre LIKE '%%Shōnen%%') AND w.{rarity_filter} ORDER BY RAND() LIMIT 1")
-            if not waifu:
-                waifu = fetch_one(f"SELECT * FROM waifu WHERE {rarity_filter} ORDER BY RAND() LIMIT 1")
+            waifu = fetch_one(base_query + " AND (a.genre LIKE '%%Shonen%%' OR a.genre LIKE '%%Shōnen%%') ORDER BY RAND() LIMIT 1")
+        elif banner == 'seinen':
+            waifu = fetch_one(base_query + " AND a.genre LIKE '%%Seinen%%' ORDER BY RAND() LIMIT 1")
+        elif banner == 'shojo':
+            waifu = fetch_one(base_query + " AND (a.genre LIKE '%%Shojo%%' OR a.genre LIKE '%%Shōjo%%') ORDER BY RAND() LIMIT 1")
+        elif banner == 'videogame':
+            waifu = fetch_one(base_query + " AND w.videogame_id IS NOT NULL ORDER BY RAND() LIMIT 1")
         else:
-            waifu = fetch_one(f"SELECT * FROM waifu WHERE {rarity_filter} ORDER BY RAND() LIMIT 1")
+            waifu = fetch_one(base_query + " ORDER BY RAND() LIMIT 1")
             
-        # Fallback if no waifu in that rarity
+        # Fallback if no waifu in that specific rarity/banner combo
         if not waifu:
-            waifu = fetch_one("SELECT * FROM waifu ORDER BY RAND() LIMIT 1")
+            waifu = fetch_one(base_query + " ORDER BY RAND() LIMIT 1")
+        
+        # Absolute fallback if no waifu in that rarity at all
+        if not waifu:
+            waifu = fetch_one("SELECT w.*, a.title as anime_title, v.title as videogame_title FROM waifu w LEFT JOIN anime a ON w.anime_id = a.id LEFT JOIN videogame v ON w.videogame_id = v.id ORDER BY RAND() LIMIT 1")
         
         if waifu:
+            # Determine "Theme"
+            waifu['theme'] = waifu['anime_title'] if waifu['anime_title'] else waifu['videogame_title']
             waifus.append(waifu)
             # Add to collection
             execute_query("""
@@ -359,7 +394,10 @@ def gacha_roll():
         return redirect(url_for('extra.gacha'))
     
     # Deduct points and update pity
-    execute_query("UPDATE user SET points = points - %s, gacha_pity = %s WHERE id = %s", (roll_cost, pity, user_id))
+    if is_admin:
+        execute_query("UPDATE user SET gacha_pity = %s WHERE id = %s", (pity, user_id))
+    else:
+        execute_query("UPDATE user SET points = points - %s, gacha_pity = %s WHERE id = %s", (roll_cost, pity, user_id))
     
     # Update Quests
     update_quest_progress(user_id, 'gacha_rolls', amount)
@@ -432,11 +470,25 @@ def gacha_craft():
 def collection():
     user_id = session['user_id']
     items = fetch_all("""
-        SELECT c.*, w.name, w.image_url, w.rarity 
+        SELECT c.*, w.name, w.image_url, w.rarity,
+               a.title as anime_title, v.title as videogame_title
         FROM user_collection c 
         JOIN waifu w ON c.waifu_id = w.id 
+        LEFT JOIN anime a ON w.anime_id = a.id
+        LEFT JOIN videogame v ON w.videogame_id = v.id
         WHERE c.user_id = %s
+        ORDER BY 
+            CASE w.rarity 
+                WHEN 'Légendaire' THEN 1 
+                WHEN 'Épique' THEN 2 
+                WHEN 'Rare' THEN 3 
+                ELSE 4 
+            END,
+            w.name ASC
     """, (user_id,))
+    
+    for item in items:
+        item['theme'] = item['anime_title'] if item['anime_title'] else item['videogame_title']
     
     return render_template('collection.html', items=items)
 

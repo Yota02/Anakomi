@@ -107,6 +107,21 @@ body {
     position: relative;
     overflow: hidden;
 }
+.banner-timer {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(0,0,0,0.7);
+    color: #ffdf00;
+    padding: 8px 15px;
+    border-radius: 50px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    border: 1px solid rgba(255,223,0,0.3);
+    backdrop-filter: blur(5px);
+    z-index: 5;
+    display: none; /* Hidden by default for standard banner */
+}
 .banner-display h2 {
     font-size: 3.5rem;
     font-style: italic;
@@ -316,10 +331,22 @@ body {
     <div class="gacha-body">
         <div class="banner-selection">
             <button type="button" class="banner-btn active" onclick="selectBanner('standard', this)">Envie de Voyage</button>
+            
+            {% if active_featured == 'shonen' %}
             <button type="button" class="banner-btn" onclick="selectBanner('shonen', this)">Épopée Shonen</button>
+            {% elif active_featured == 'seinen' %}
+            <button type="button" class="banner-btn" onclick="selectBanner('seinen', this)">Ombres Seinen</button>
+            {% elif active_featured == 'shojo' %}
+            <button type="button" class="banner-btn" onclick="selectBanner('shojo', this)">Éclat Shojo</button>
+            {% elif active_featured == 'videogame' %}
+            <button type="button" class="banner-btn" onclick="selectBanner('videogame', this)">Pixel Gaming</button>
+            {% endif %}
         </div>
 
         <div class="banner-display">
+            <div class="banner-timer" id="banner-timer">
+                <i class="fas fa-clock me-1"></i> <span id="timer-text">Chargement...</span>
+            </div>
             <h2 id="banner-title">Envie de Voyage</h2>
             <p id="banner-desc">Invoquez des personnages de toutes les dimensions</p>
             <div class="pity-counter">
@@ -360,20 +387,62 @@ function selectBanner(type, btnElement) {
     const title = document.getElementById('banner-title');
     const desc = document.getElementById('banner-desc');
 
+    const timer = document.getElementById('banner-timer');
+
     if (type === 'standard') {
         title.innerText = 'Envie de Voyage';
         title.style.background = 'linear-gradient(to right, #ffdf00, #ff8c00)';
         title.style.webkitBackgroundClip = 'text';
         desc.innerText = 'Invoquez des personnages de toutes les dimensions';
         bannerDisplay.style.backgroundImage = "url('{{ url_for('static', filename='banners/voyage.png') }}')";
-    } else {
+        timer.style.display = 'none';
+    } else if (type === 'shonen') {
         title.innerText = 'Épopée Shonen';
         title.style.background = 'linear-gradient(to right, #ff4b2b, #ff416c)';
         title.style.webkitBackgroundClip = 'text';
         desc.innerText = 'Taux de drop augmenté pour les héros Shonen';
         bannerDisplay.style.backgroundImage = "url('{{ url_for('static', filename='banners/shonen.png') }}')";
+        timer.style.display = 'block';
+    } else if (type === 'seinen') {
+        title.innerText = 'Ombres Seinen';
+        title.style.background = 'linear-gradient(to right, #434343, #000000)';
+        title.style.webkitBackgroundClip = 'text';
+        desc.innerText = 'Des récits matures et profonds';
+        bannerDisplay.style.backgroundImage = "url('{{ url_for('static', filename='banners/seinen.png') }}')";
+        timer.style.display = 'block';
+    } else if (type === 'shojo') {
+        title.innerText = 'Éclat Shojo';
+        title.style.background = 'linear-gradient(to right, #ff9a9e, #fecfef)';
+        title.style.webkitBackgroundClip = 'text';
+        desc.innerText = 'La magie des sentiments et de la romance';
+        bannerDisplay.style.backgroundImage = "url('{{ url_for('static', filename='banners/shojo.png') }}')";
+        timer.style.display = 'block';
+    } else if (type === 'videogame') {
+        title.innerText = 'Pixel Gaming';
+        title.style.background = 'linear-gradient(to right, #00f2fe, #4facfe)';
+        title.style.webkitBackgroundClip = 'text';
+        desc.innerText = 'Invoquez les héros de vos jeux favoris';
+        bannerDisplay.style.backgroundImage = "url('{{ url_for('static', filename='banners/videogame.png') }}')";
+        timer.style.display = 'block';
     }
 }
+
+// Countdown logic
+const expiresAt = new Date("{{ expires_at.isoformat() }}T00:00:00");
+function updateTimer() {
+    const now = new Date();
+    const diff = expiresAt - now;
+    if (diff <= 0) {
+        document.getElementById('timer-text').innerText = "Rotation imminente !";
+        return;
+    }
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    document.getElementById('timer-text').innerText = `${days}j ${hours}h ${mins}m restant`;
+}
+setInterval(updateTimer, 60000);
+updateTimer();
 
 function toggleQuests() {
     const panel = document.getElementById('quests-panel');

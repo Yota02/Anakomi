@@ -113,6 +113,16 @@ body {
     text-shadow: 0 2px 4px rgba(0,0,0,0.8);
 }
 
+.character-theme {
+    font-size: 0.8rem;
+    color: #ffdf00;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(255, 223, 0, 0.5);
+}
+
 .character-element {
     display: inline-block;
     padding: 3px 10px;
@@ -210,8 +220,16 @@ body {
     </div>
 </div>
 
+<!-- Single Card Reveal Container (for x10) -->
+<div id="single-reveal-container" style="display: none; min-height: 85vh; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle at center, #1b2845 0%, #000000 100%); background-image: url('https://www.transparenttextures.com/patterns/stardust.png'); position: relative; cursor: pointer; border-radius: 20px;" class="shadow-lg">
+    <div id="single-card-slot"></div>
+    <p style="position: absolute; bottom: 20px; color: rgba(255,255,255,0.7); font-style: italic; animation: pulse 1.5s infinite;">Cliquez n'importe où pour continuer...</p>
+</div>
+
+<!-- Final Grid Container -->
 <div id="result-content" class="container-fluid py-4" style="display: none;">
     <div class="result-container shadow-lg">
+        <h3 class="mb-4 text-warning" style="font-style: italic; display: none;" id="summary-title">Récapitulatif de l'invocation</h3>
         <div class="d-flex flex-wrap justify-content-center gap-4">
             {% for waifu in waifus %}
                 <!-- Determine rarity class -->
@@ -240,6 +258,9 @@ body {
                             <i class="fas fa-star"></i>
                             {% endfor %}
                         </div>
+                        <div class="character-theme">
+                            <i class="fas fa-bookmark me-1"></i> {{ waifu.theme }}
+                        </div>
                         <h2 class="character-name">{{ waifu.name }}</h2>
                         <div class="character-element">
                             <i class="fas fa-venus-mars"></i> {{ waifu.gender }}
@@ -252,7 +273,7 @@ body {
             {% endfor %}
         </div>
 
-        <div class="action-buttons">
+        <div class="action-buttons" id="action-buttons">
             <a href="{{ url_for('extra.gacha') }}" class="action-btn"><i class="fas fa-undo"></i> Continuer</a>
             <a href="{{ url_for('extra.collection') }}" class="action-btn"><i class="fas fa-book-open"></i> Ma Collection</a>
         </div>
@@ -260,22 +281,76 @@ body {
     </div>
 </div>
 
+<style>
+@keyframes pulse {
+    0% { opacity: 0.4; }
+    50% { opacity: 1; }
+    100% { opacity: 0.4; }
+}
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const overlay = document.getElementById('reveal-overlay');
     const content = document.getElementById('result-content');
     const flash = document.getElementById('flash-effect');
+    const singleContainer = document.getElementById('single-reveal-container');
+    const singleSlot = document.getElementById('single-card-slot');
+    const summaryTitle = document.getElementById('summary-title');
+    const actionButtons = document.getElementById('action-buttons');
+    
+    const originalCards = Array.from(content.querySelectorAll('.character-card'));
+    const isMultiPull = originalCards.length > 1;
+    let currentCardIndex = 0;
 
-    // Wait for the shooting star animation (1.5s)
-    setTimeout(() => {
-        // Trigger Flash
+    function showNextCard() {
+        if (currentCardIndex >= originalCards.length) {
+            // End of individual reveals
+            singleContainer.style.display = 'none';
+            content.style.display = 'block';
+            summaryTitle.style.display = 'block'; // Show title for grid
+            // Ensure cards animate slightly when grid is shown
+            originalCards.forEach((c, idx) => {
+                c.style.animation = 'none'; // reset
+                c.offsetHeight; // trigger reflow
+                c.style.animation = `cardAppear 0.5s ease-out forwards`;
+                c.style.animationDelay = `${idx * 0.05}s`;
+            });
+            return;
+        }
+        
+        // Setup the flash for each individual card (optional, maybe smaller flash)
+        flash.classList.remove('flash-active');
+        void flash.offsetWidth; // trigger reflow
         flash.classList.add('flash-active');
+
+        const cardClone = originalCards[currentCardIndex].cloneNode(true);
+        cardClone.classList.remove('small-card');
+        cardClone.style.animationDelay = '0s'; // instant appear for individual
+        cardClone.style.animation = 'cardAppear 0.5s ease-out forwards, cardFloat 3s infinite ease-in-out 0.5s';
         
-        // Switch content
+        singleSlot.innerHTML = '';
+        singleSlot.appendChild(cardClone);
+        
+        currentCardIndex++;
+    }
+
+    if (isMultiPull) {
+        singleContainer.addEventListener('click', showNextCard);
+    }
+
+    // Initial sequence
+    setTimeout(() => {
+        flash.classList.add('flash-active');
         overlay.style.display = 'none';
-        content.style.display = 'block';
         
-        // Remove flash after animation
+        if (isMultiPull) {
+            singleContainer.style.display = 'flex';
+            showNextCard();
+        } else {
+            content.style.display = 'block';
+        }
+        
         setTimeout(() => {
             flash.classList.remove('flash-active');
         }, 800);
