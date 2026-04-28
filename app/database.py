@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 # Charger les variables d'environnement (chercher à la racine)
 base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 dotenv_path = os.path.join(base_dir, '.env')
-load_dotenv(dotenv_path)
+load_dotenv(dotenv_path, override=True)
 
 # Configuration de la base de données
 _db_port = os.getenv('DB_PORT', '3316')
@@ -102,6 +102,7 @@ def ensure_tables():
         username VARCHAR(50) NOT NULL UNIQUE,
         email VARCHAR(100) NOT NULL UNIQUE,
         password_hash VARCHAR(255) NOT NULL,
+        points INT DEFAULT 100,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     """
@@ -332,6 +333,39 @@ def ensure_tables():
         FOREIGN KEY (waifu_id) REFERENCES waifu(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
     """
+    user_collection_sql = """
+    CREATE TABLE IF NOT EXISTS user_collection (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        waifu_id INT NOT NULL,
+        quantity INT DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE,
+        FOREIGN KEY (waifu_id) REFERENCES waifu(id) ON DELETE CASCADE,
+        UNIQUE KEY unique_user_waifu (user_id, waifu_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
+    tier_list_sql = """
+    CREATE TABLE IF NOT EXISTS tier_list (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        category ENUM('anime', 'videogame', 'waifu') NOT NULL,
+        is_public BOOLEAN DEFAULT TRUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
+    tier_list_item_sql = """
+    CREATE TABLE IF NOT EXISTS tier_list_item (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        tier_list_id INT NOT NULL,
+        item_id INT NOT NULL,
+        tier ENUM('S', 'A', 'B', 'C', 'D', 'F') DEFAULT 'B',
+        FOREIGN KEY (tier_list_id) REFERENCES tier_list(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+    """
+
 
     try:
         with get_connection() as conn:
@@ -356,6 +390,17 @@ def ensure_tables():
                 cursor.execute(tournament_vote_sql)
                 cursor.execute(battle_royale_sql)
                 cursor.execute(battle_participant_sql)
+                cursor.execute(user_collection_sql)
+                cursor.execute(tier_list_sql)
+                cursor.execute(tier_list_item_sql)
+                
+                # Vérifier si la colonne 'points' existe dans la table 'user'
+                cursor.execute("""
+                    SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_NAME = 'user' AND COLUMN_NAME = 'points'
+                """)
+                if not cursor.fetchone():
+                    cursor.execute("ALTER TABLE user ADD COLUMN points INT DEFAULT 100 AFTER password_hash")
                 
                 cursor.execute("""
                     SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
