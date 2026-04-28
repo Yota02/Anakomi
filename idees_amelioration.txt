@@ -1,0 +1,29 @@
+# IDÉES D'AMÉLIORATION - ANAKOMI
+
+## 1. ENRICHISSEMENT DU CONTENU
+- [ ] Support Mangas : Table dédiée, suivi des chapitres, listes de lecture.
+- [ ] Support Séries & Films : Étendre la base au-delà de l'animation.
+- [ ] Système de Recommandation : Algorithme basé sur les genres et les notes similaires.
+- [ ] Intégration d'API Externes (Jikan/AniList) : Import automatique des données et images.
+- [ ] Import de listes : Permettre aux utilisateurs d'importer leur MAL ou AniList.
+
+## 2. DESIGN & EXPÉRIENCE UTILISATEUR (UX/UI)
+- [ ] Mode Sombre (Dark Mode) : Thème nocturne complet.
+- [ ] Animations Gacha : Effets visuels lors des tirages (flash, secousses).
+- [ ] Backgrounds Dynamiques : Effets de parallaxe, particules (cerisiers, digital).
+- [ ] Skeleton Loaders : Améliorer la perception de vitesse au chargement.
+- [ ] Glassmorphism 2.0 : Bordures plus fines, effets de flou plus profonds, glow au survol.
+- [ ] Version PWA : Rendre le site installable sur mobile.
+
+## 3. COMMUNAUTÉ & INTERACTION
+- [ ] Temps Réel (WebSockets) : Voir les votes et résultats en direct (Battles/Sondages).
+- [ ] Fil d'Actualité : Suivre l'activité des autres utilisateurs (avis, ajouts).
+- [ ] Système de Réponse : Permettre de commenter les avis des autres.
+- [ ] Profils Custom : Bannières, citations favorites, personnages mis en avant.
+- [ ] Succès & Badges : Gamification (ex: "Collectionneur SSS", "Critique d'Or").
+
+## 4. TECHNIQUE & PERFORMANCE
+- [ ] Optimisation Images : Conversion auto en WebP, lazy loading.
+- [ ] SEO & OpenGraph : Cartes de prévisualisation pour Discord/Twitter.
+- [ ] Cache Database : Mise en cache des tops et listes populaires pour réduire la charge.
+- [ ] Tests Unitaires : Sécuriser les fonctionnalités critiques (auth, gacha, votes).

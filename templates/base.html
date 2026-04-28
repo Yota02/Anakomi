@@ -15,11 +15,15 @@
 
     <style>
     :root {
-        --bg-main: #fdfafb; /* Blanc cassé avec une touche de rose/rouge très légère */
+        --bg-main: #fdfafb;
         --bg-card: rgba(255, 255, 255, 0.8);
-        --accent-primary: #e63946; /* Rouge sanctuaire / néon */
-        --accent-secondary: #7209b7; /* Violet électrique / futuriste */
-        --accent-warm: #f4a261; /* Orange doux pour le côté cosi */
+        --bg-navbar: rgba(253, 250, 251, 0.8);
+        --bg-hero: rgba(255, 255, 255, 0.5);
+        --bg-input: #ffffff;
+        --bg-footer: #ffffff;
+        --accent-primary: #e63946;
+        --accent-secondary: #7209b7;
+        --accent-warm: #f4a261;
         --text-main: #2d3436;
         --text-muted: #636e72;
         --glass-border: rgba(230, 57, 70, 0.1);
@@ -27,6 +31,24 @@
         --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         --font-main: 'Noto Sans JP', sans-serif;
         --font-header: 'Space Grotesk', sans-serif;
+        --pattern-opacity: 0.02;
+    }
+
+    [data-theme="dark"] {
+        --bg-main: #0b0e14; /* Deep midnight */
+        --bg-card: rgba(22, 27, 34, 0.8);
+        --bg-navbar: rgba(11, 14, 20, 0.8);
+        --bg-hero: rgba(22, 27, 34, 0.5);
+        --bg-input: #161b22;
+        --bg-footer: #0b0e14;
+        --accent-primary: #ff4d6d;
+        --accent-secondary: #9d4edd;
+        --accent-warm: #ffb703;
+        --text-main: #f0f6fc;
+        --text-muted: #8b949e;
+        --glass-border: rgba(255, 77, 109, 0.2);
+        --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        --pattern-opacity: 0.05;
     }
 
     body {
@@ -49,6 +71,7 @@
         position: fixed;
         top: 0; left: 0; right: 0; bottom: 0;
         background-image: url("data:image/svg+xml,%3Csvg width='100' height='20' viewBox='0 0 100 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M21.184 20c.357-.13.72-.264 1.088-.402l1.768-.661C33.64 15.347 39.647 14 45 14c5.354 0 11.36 1.347 20.96 4.937l1.769.661c.369.138.73.272 1.087.402H21.184zm-2.434 0H0V0h100v20h-18.75c-1.071-.371-2.187-.797-3.347-1.232l-1.769-.66c-9.046-3.37-14.162-4.108-21.134-4.108-6.971 0-12.088.738-21.134 4.108l-1.769.66c-1.16.435-2.276.861-3.347 1.232z' fill='%23e63946' fill-opacity='0.02' fill-rule='evenodd'/%3E%3C/svg%3E");
+        opacity: var(--pattern-opacity);
         pointer-events: none;
         z-index: -1;
     }
@@ -57,7 +80,7 @@
         position: sticky;
         top: 0;
         z-index: 1000;
-        background: rgba(253, 250, 251, 0.8) !important;
+        background: var(--bg-navbar) !important;
         backdrop-filter: blur(12px);
         border-bottom: 1px solid var(--glass-border);
         padding: 1rem 0;
@@ -110,7 +133,7 @@
     }
 
     .dropdown-menu {
-        background: rgba(255, 255, 255, 0.95);
+        background: var(--bg-card);
         backdrop-filter: blur(10px);
         border: 1px solid var(--glass-border);
         box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
@@ -174,7 +197,7 @@
 
     .btn-outline-secondary {
         border: 1px solid var(--glass-border);
-        background: #fff;
+        background: var(--bg-input);
         color: var(--text-muted);
     }
 
@@ -185,7 +208,7 @@
     }
 
     .hero { 
-        background: rgba(255, 255, 255, 0.5);
+        background: var(--bg-hero);
         backdrop-filter: blur(5px);
         border-radius: 30px;
         border: 1px solid var(--glass-border);
@@ -217,7 +240,7 @@
     }
 
     .form-control, .form-select {
-        background: #fff;
+        background: var(--bg-input);
         border: 1px solid var(--glass-border);
         color: var(--text-main);
         border-radius: 12px;
@@ -231,7 +254,7 @@
     }
 
     .input-group-text {
-        background: #fff;
+        background: var(--bg-input);
         border: 1px solid var(--glass-border);
         color: var(--text-muted);
         border-radius: 12px;
@@ -246,7 +269,7 @@
         color: var(--text-muted); 
         font-family: var(--font-header);
         border-top: 1px solid var(--glass-border); 
-        background: #fff;
+        background: var(--bg-footer);
         margin-top: auto;
     }
 
@@ -258,6 +281,10 @@
         to { opacity: 1; transform: translateY(0); } 
     }
 
+    [data-theme="dark"] .navbar-toggler-icon {
+        filter: invert(1);
+    }
+
     /* Custom Scrollbar */
     ::-webkit-scrollbar {
         width: 8px;
@@ -266,13 +293,47 @@
         background: var(--bg-main);
     }
     ::-webkit-scrollbar-thumb {
-        background: #dfe6e9;
+        background: var(--glass-border);
         border-radius: 10px;
     }
     ::-webkit-scrollbar-thumb:hover {
         background: var(--accent-primary);
     }
+
+    /* Dark Mode Toggle Switch */
+    .theme-switch-wrapper {
+        display: flex;
+        align-items: center;
+        margin-left: 1rem;
+    }
+    #theme-toggle {
+        background: none;
+        border: none;
+        color: var(--text-main);
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: var(--transition);
+        padding: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+    }
+    #theme-toggle:hover {
+        background: var(--glass-border);
+        color: var(--accent-primary);
+        transform: rotate(15deg);
+    }
     </style>
+    <script>
+        // On effectue le changement avant le rendu du body pour éviter le flash blanc
+        (function() {
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            if (currentTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
 </head>
 <body>
     <nav class="navbar navbar-expand-lg">
@@ -369,6 +430,13 @@
                         <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.register') }}">Inscription</a></li>
                     {% endif %}
                     <li class="nav-item"><a class="nav-link" href="{{ url_for('main.contact') }}">Contact</a></li>
+                    <li class="nav-item">
+                        <div class="theme-switch-wrapper">
+                            <button id="theme-toggle" title="Changer de mode">
+                                <i class="fas fa-moon"></i>
+                            </button>
+                        </div>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -379,7 +447,7 @@
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 {% for message in messages %}
-                    <div class="alert border-0 shadow-sm animate-fade-in" role="alert" style="background: #fff; border-left: 4px solid var(--accent-primary) !important; color: var(--text-main);">
+                    <div class="alert border-0 shadow-sm animate-fade-in" role="alert" style="background: var(--bg-card); backdrop-filter: blur(10px); border-left: 4px solid var(--accent-primary) !important; color: var(--text-main);">
                         <i class="fas fa-info-circle me-2 text-danger"></i>
                         {{ message }}
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -403,16 +471,34 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
-    {% if current_user %}
     <script>
+    const themeToggle = document.getElementById('theme-toggle');
+    const icon = themeToggle.querySelector('i');
+    
+    // Initialiser l'icône au chargement
+    if (document.documentElement.getAttribute('data-theme') === 'dark') {
+        icon.classList.replace('fa-moon', 'fa-sun');
+    }
+
+    themeToggle.addEventListener('click', () => {
+        let theme = document.documentElement.getAttribute('data-theme');
+        if (theme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'light');
+            localStorage.setItem('theme', 'light');
+            icon.classList.replace('fa-sun', 'fa-moon');
+        } else {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+            icon.classList.replace('fa-moon', 'fa-sun');
+        }
+    });
+
+    {% if current_user %}
     // Détection de la fermeture de la page ou départ du site
-    // Utilisation de visibilitychange ou pagehide pour plus de fiabilité
     window.addEventListener('pagehide', function() {
-        // navigator.sendBeacon est idéal car il s'exécute de manière asynchrone 
-        // même après la fermeture de la fenêtre
         navigator.sendBeacon("{{ url_for('auth.exit_signal') }}");
     });
-    </script>
     {% endif %}
+    </script>
 </body>
 </html>
