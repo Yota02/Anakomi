@@ -152,11 +152,16 @@ def anime_detail(id):
 @anime_bp.route('/add_review/<int:anime_id>', methods=['POST'])
 @login_required
 def add_review(anime_id):
-    rating = request.form.get('rating')
-    comment = request.form['comment']
+    rating_raw = request.form.get('rating')
+    rating = int(rating_raw) if rating_raw else None
+    comment = (request.form.get('comment') or '').strip()
     parent_id = request.form.get('parent_id')
+    has_parent_id = _column_exists('review', 'parent_id')
     
     if parent_id:
+        if not has_parent_id:
+            flash("Les réponses ne sont pas disponibles pour le moment")
+            return redirect(url_for('anime.anime_detail', id=anime_id))
         # For replies, rating is usually not required or relevant if it's just a comment hierarchy
         # But we'll keep the structure. Ratings might be NULL for replies.
         execute_query(
@@ -165,10 +170,19 @@ def add_review(anime_id):
         )
         flash('Réponse ajoutée avec succès')
     else:
-        existing_review = fetch_one(
-            "SELECT id FROM review WHERE user_id = %s AND anime_id = %s AND parent_id IS NULL",
-            (session['user_id'], anime_id)
-        )
+        if rating is None:
+            flash("Veuillez sélectionner une note")
+            return redirect(url_for('anime.anime_detail', id=anime_id))
+        if has_parent_id:
+            existing_review = fetch_one(
+                "SELECT id FROM review WHERE user_id = %s AND anime_id = %s AND parent_id IS NULL",
+                (session['user_id'], anime_id)
+            )
+        else:
+            existing_review = fetch_one(
+                "SELECT id FROM review WHERE user_id = %s AND anime_id = %s",
+                (session['user_id'], anime_id)
+            )
         
         if existing_review:
             execute_query(
